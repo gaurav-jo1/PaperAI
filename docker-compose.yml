@@ -1,0 +1,53 @@
+services:
+  ml-backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: crimson_ml-backend_c
+    env_file:
+      - ./backend/.env
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./backend:/app
+    depends_on:
+      - postgres
+
+  frontend:
+    build: ./frontend
+    container_name: crimson_frontend_c
+    ports:
+      - "3000:3000"
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
+    environment:
+      - CHOKIDAR_USEPOLLING=true
+
+  postgres:
+    image: postgres:18.1-alpine3.21
+    container_name: crimson_postgres_c
+    environment:
+      - POSTGRES_DB=crimson_db
+      - POSTGRES_USER=postgres_user
+      - POSTGRES_PASSWORD=postgres_pass
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres_user -d crimson_db"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # pinecone:
+  #   image: mcp/pinecone
+  #   container_name: crimson_pinecone_c
+  #   ports:
+  #     - "8080:8080"
+  #   volumes:
+  #     - ./pinecone:/pinecone
+
+volumes:
+  pgdata:
