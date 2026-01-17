@@ -41,13 +41,5 @@ services:
       timeout: 5s
       retries: 5
 
-  # pinecone:
-  #   image: mcp/pinecone
-  #   container_name: crimson_pinecone_c
-  #   ports:
-  #     - "8080:8080"
-  #   volumes:
-  #     - ./pinecone:/pinecone
-
 volumes:
   pgdata:

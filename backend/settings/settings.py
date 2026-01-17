@@ -9,6 +9,8 @@ class Settings(BaseSettings):
     POSTGRES_PASSWORD: str
     DATABASE_URL: str
     PINECONE_API_KEY: str
+    PINECONE_INDEX_NAME: str
+    PINECONE_INDEX_HOST: str
 
 
 api_settings = Settings()
