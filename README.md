@@ -17,3 +17,5 @@ Crimson is a powerful multi-file RAG (Retrieval-Augmented Generation) system des
 - **Database**: PostgreSQL
 - **Orchestration**: LangChain
 - **LLM**: Google Gemini
+- **Infrastructure**: Docker & Docker Compose
+- **CI/CD**: GitHub Actions
