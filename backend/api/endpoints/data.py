@@ -30,7 +30,6 @@ def get_db():
 router = APIRouter()
 
 user_id = "2c117f72-d92f-4b2e-a290-563842bcf65c"
-namespace = "forty-eight-laws"
 
 
 @router.post("/upload")
@@ -87,7 +86,10 @@ async def upload_data(
                 )
 
             for i in range(0, len(records), 50):
-                index.upsert_records(namespace=namespace, records=records[i : i + 50])
+                index.upsert_records(
+                    namespace=api_settings.PINECONE_NAMESPACE,
+                    records=records[i : i + 50],
+                )
 
             print(f"Uploaded {file.filename} to Pinecone")
         finally:

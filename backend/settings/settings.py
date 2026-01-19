@@ -11,6 +11,8 @@ class Settings(BaseSettings):
     PINECONE_API_KEY: str
     PINECONE_INDEX_NAME: str
     PINECONE_INDEX_HOST: str
+    PINECONE_NAMESPACE: str
+    GEMINI_API_KEY: str
 
 
 api_settings = Settings()

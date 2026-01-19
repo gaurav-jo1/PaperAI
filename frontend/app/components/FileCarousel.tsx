@@ -1,11 +1,8 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
-import axios from "axios";
+import React, { useState, useEffect, useRef } from "react";
 import {
   Folder,
-  FileText,
-  Upload,
   CheckSquare,
   Square,
   ChevronRight,
@@ -15,14 +12,9 @@ import {
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 
-interface FileItem {
-  file_id: string;
-  number_of_pages: number;
-  file_name: string;
-  user_id: string;
-  id: string;
-  created_at: string;
-}
+import { FileListItem } from "./ui";
+import { fileApi } from "@/app/services/api";
+import type { FileItem, SortOrder } from "@/app/types";
 
 interface FileCarouselProps {
   selectedFileIds: string[];
@@ -39,13 +31,13 @@ export default function FileCarousel({
   const [loading, setLoading] = useState(true);
   const [uploading, setUploading] = useState(false);
   const [isOpen, setIsOpen] = useState(true);
-  const [sortOrder, setSortOrder] = useState<"newest" | "oldest">("newest");
-  const fileInputRef = React.useRef<HTMLInputElement>(null);
+  const [sortOrder, setSortOrder] = useState<SortOrder>("newest");
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const fetchFiles = async () => {
     try {
-      const response = await axios.get("http://127.0.0.1:8000/data/files");
-      setFiles(response.data);
+      const data = await fileApi.getFiles();
+      setFiles(data);
     } catch (error) {
       console.error("Error fetching files:", error);
     } finally {
@@ -64,23 +56,11 @@ export default function FileCarousel({
   const handleUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     if (!e.target.files || e.target.files.length === 0) return;
 
-    const file = e.target.files[0];
-    const formData = new FormData();
-    formData.append("file", file);
-
+    const uploadFiles = Array.from(e.target.files);
     setUploading(true);
-    try {
-      const uploadPromises = Array.from(e.target.files).map(async (file) => {
-        const formData = new FormData();
-        formData.append("file", file);
-        return axios.post("http://127.0.0.1:8000/data/files", formData, {
-          headers: {
-            "Content-Type": "multipart/form-data",
-          },
-        });
-      });
 
-      await Promise.all(uploadPromises);
+    try {
+      await fileApi.uploadFiles(uploadFiles);
       await fetchFiles();
     } catch (error) {
       console.error("Upload failed:", error);
@@ -124,17 +104,19 @@ export default function FileCarousel({
       transition={{ type: "spring", damping: 25, stiffness: 200 }}
       className="w-80 h-full border-l border-gray-200 bg-gray-50 flex flex-col"
     >
+      {/* Header */}
       <div className="p-4 border-b border-gray-200 bg-white flex items-center justify-between">
         <h2 className="text-sm font-semibold text-gray-800">Documents</h2>
         <button
           onClick={onClose}
-          className="p-1 hover:bg-gray-100 rounded-lg text-gray-500 transition-colors"
+          className="p-1 hover:bg-gray-100 rounded-lg text-gray-500 cursor-pointer"
           title="Close Sidebar"
         >
           <PanelRightClose className="w-5 h-5" />
         </button>
       </div>
 
+      {/* Hidden file input */}
       <input
         type="file"
         ref={fileInputRef}
@@ -144,6 +126,7 @@ export default function FileCarousel({
         multiple
       />
 
+      {/* File list */}
       <div className="flex-1 overflow-y-auto p-3">
         {loading ? (
           <div className="flex justify-center items-center h-20 text-gray-400 text-sm">
@@ -152,6 +135,7 @@ export default function FileCarousel({
         ) : (
           <div className="space-y-1">
             <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
+              {/* Folder header */}
               <div
                 className="flex items-center gap-2 p-3 bg-gray-50/50 cursor-pointer hover:bg-gray-100 transition-colors"
                 onClick={() => setIsOpen(!isOpen)}
@@ -190,6 +174,7 @@ export default function FileCarousel({
                     transition={{ duration: 0.2, ease: "easeInOut" }}
                     className="border-t border-gray-100 overflow-hidden"
                   >
+                    {/* Toolbar */}
                     <div className="px-3 py-2 bg-gray-50/50 border-b border-gray-100 flex items-center justify-between">
                       <button
                         onClick={handleTriggerUpload}
@@ -228,37 +213,16 @@ export default function FileCarousel({
                       </div>
                     </div>
 
-                    {sortedFiles.map((file) => {
-                      const isSelected = selectedFileIds.includes(file.file_id);
-                      return (
-                        <div
-                          key={file.file_id}
-                          className={`flex items-center gap-3 p-3 border-b border-gray-50 last:border-0 hover:bg-gray-50 transition-colors cursor-pointer ${
-                            isSelected ? "bg-blue-50/30" : ""
-                          }`}
-                          onClick={() => handleSelectOne(file.file_id)}
-                        >
-                          <div className="flex-1 min-w-0">
-                            <div className="flex items-center gap-2 mb-0.5">
-                              <FileText className="w-4 h-4 text-gray-500 shrink-0" />
-                              <p className="text-sm text-gray-700 font-medium truncate">
-                                {file.file_name}
-                              </p>
-                            </div>
-                            <p className="text-xs text-gray-400 pl-6">
-                              {file.number_of_pages} pages
-                            </p>
-                          </div>
-                          <div className="p-1">
-                            {isSelected ? (
-                              <CheckSquare className="w-4 h-4 text-blue-600" />
-                            ) : (
-                              <Square className="w-4 h-4 text-gray-300" />
-                            )}
-                          </div>
-                        </div>
-                      );
-                    })}
+                    {/* File list items */}
+                    {sortedFiles.map((file) => (
+                      <FileListItem
+                        key={file.file_id}
+                        file={file}
+                        isSelected={selectedFileIds.includes(file.file_id)}
+                        onSelect={() => handleSelectOne(file.file_id)}
+                      />
+                    ))}
+
                     {files.length === 0 && (
                       <div className="p-4 text-center text-xs text-gray-400">
                         No files found
