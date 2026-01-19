@@ -13,6 +13,7 @@ class Settings(BaseSettings):
     PINECONE_INDEX_HOST: str
     PINECONE_NAMESPACE: str
     GEMINI_API_KEY: str
+    HUGGING_FACE_KEY: str
 
 
 api_settings = Settings()

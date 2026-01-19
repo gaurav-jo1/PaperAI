@@ -1,19 +1,14 @@
 from fastapi import APIRouter
 from pinecone import Pinecone
 from settings.settings import api_settings
-from langchain_google_genai import ChatGoogleGenerativeAI
 from pydantic import BaseModel
 from langgraph.graph import StateGraph, START, END
 from typing import TypedDict, List
-from langchain_core.messages import BaseMessage, SystemMessage, HumanMessage
+from huggingface_hub import InferenceClient
 
 router = APIRouter()
 
-llm = ChatGoogleGenerativeAI(
-    model="gemini-3-flash-preview",
-    api_key=api_settings.GEMINI_API_KEY,
-    temperature=0.7,
-)
+client = InferenceClient(api_key=api_settings.HUGGING_FACE_KEY)
 
 pc = Pinecone(api_key=api_settings.PINECONE_API_KEY)
 
@@ -29,7 +24,7 @@ class ChatRequest(BaseModel):
 
 
 class AgentState(TypedDict):
-    messages: List[BaseMessage]
+    messages: str
     knowledge_files: List[str]
 
 
@@ -40,8 +35,8 @@ def retrieve_context(state: AgentState):
     if not knowledge_files:
         return {"messages": messages}
 
-    last_query = messages[-1].content
-    top_k = len(knowledge_files) * 20
+    last_query = messages
+    top_k = len(knowledge_files) * 12
 
     retrieved_docs = index.search(
         namespace=api_settings.PINECONE_NAMESPACE,
@@ -61,18 +56,38 @@ def retrieve_context(state: AgentState):
 
     vector_db_response = retrieved_docs.to_dict()["result"]["hits"]
 
-    system_content = (
-        "You are a helpful assistant. Use the following context in your response:"
-        f"\n\n{vector_db_response}"
-    )
+    prompt = f"""
+    I have provided a collection of reference messages and a dataset below.
 
-    return {"messages": [SystemMessage(content=system_content)] + messages}
+    ### SOURCE DATA: {vector_db_response}
+
+    ### TASK: Based strictly on the provided data, answer the following question: {messages}
+
+    ### REQUIREMENTS:
+    1. Do not include information that is not present in the SOURCE DATA.
+    2. If the data does not contain the answer, reply stating that the information is unavailable.
+
+    ### PROHIBITIONS (STRICT):
+    1. **No Meta-Commentary:** Do not include notes about what is missing, disclaimers about the sample size, or "Additional Information" sections.
+    2. **No Assumptions:** Do not guess the source of the data (e.g., book titles) if it is not explicitly named in the SOURCE DATA.
+    3. **No Conversational Filler:** Provide only the direct answer. Do not start with "Based on the data..." or "Here is the info..."
+
+    ### FORMATTING GUIDELINES:
+    1. Use **Markdown** to make the response structured and easy to read.
+    2. Use **bolding** for key terms and **bullet points** for lists.
+    3. Use **headings** (###) to separate distinct sections of the answer. """
+
+    return {"messages": prompt}
 
 
 def call_model(state: AgentState):
     messages = state["messages"]
-    response = llm.invoke(messages)
-    return {"messages": [response]}
+    completion = client.chat.completions.create(
+        model="meta-llama/Llama-3.1-8B-Instruct",
+        messages=[{"role": "user", "content": messages}],
+    )
+    response = completion.choices[0].message.content
+    return {"messages": response}
 
 
 workflow = StateGraph(AgentState)
@@ -89,12 +104,10 @@ app = workflow.compile()
 @router.post("/")
 async def chat(data: ChatRequest):
     initial_state = {
-        "messages": [HumanMessage(content=data.message)],
+        "messages": data.message,
         "knowledge_files": data.knowledge_files,
     }
 
     result = app.invoke(initial_state)
 
-    final_message = result["messages"][-1]
-
-    return {"message": final_message.content}
+    return {"message": result["messages"]}

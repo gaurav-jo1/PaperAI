@@ -76,7 +76,7 @@ export default function ChatInterface() {
       if (response && response.message) {
         const assistantMsg: ChatMessage = {
           role: "assistant",
-          content: response.message[0].text,
+          content: response.message,
         };
 
         setMessages((prev) => [...prev, assistantMsg]);
