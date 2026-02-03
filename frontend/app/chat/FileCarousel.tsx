@@ -11,8 +11,7 @@ import {
   Plus,
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
-
-import { FileListItem } from "./ui";
+import { FileListItem } from "../components/ui";
 import { fileApi } from "@/app/services/api";
 import type { FileItem, SortOrder } from "@/app/types";
 

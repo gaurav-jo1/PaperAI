@@ -7,7 +7,7 @@ import { AnimatePresence } from "framer-motion";
 import ReactMarkdown from "react-markdown";
 
 import FileCarousel from "./FileCarousel";
-import { SelectedFilesBadge, DeepThinkButton, SendButton } from "./ui";
+import { SelectedFilesBadge, DeepThinkButton, SendButton } from "../components/ui";
 import { chatApi } from "@/app/services/api";
 
 interface MessageBlock {
@@ -22,8 +22,7 @@ interface ChatMessage {
   role: "user" | "assistant";
   content: string | MessageBlock[];
 }
-
-export default function ChatInterface() {
+export default function Home() {
   const [inputValue, setInputValue] = useState("");
   const [isDeepThink, setIsDeepThink] = useState(false);
   const [selectedKnowledgeFiles, setSelectedKnowledgeFiles] = useState<
@@ -92,7 +91,6 @@ export default function ChatInterface() {
     setSidebarFullyClosed(false);
     setIsSidebarOpen(true);
   };
-
   return (
     <div className="flex flex-row h-screen bg-white text-gray-900 selection:bg-gray-200 overflow-hidden">
       <div className="flex-1 flex flex-col h-full relative">
