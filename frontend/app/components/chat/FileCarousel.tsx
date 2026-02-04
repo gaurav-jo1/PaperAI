@@ -11,8 +11,8 @@ import {
   Plus,
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
-import { FileListItem } from "../components/ui";
-import { fileApi } from "@/app/services/api";
+import FileListItem from "./FileListItem";
+import { fileApi } from "@/app/lib/api";
 import type { FileItem, SortOrder } from "@/app/types";
 
 interface FileCarouselProps {

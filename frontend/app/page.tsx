@@ -1,9 +1,10 @@
 import Navbar from "./components/Navbar";
-import Hero from "./components/Hero";
-import StatsStrip from "./components/StatsStrip";
-import HowItWorks from "./components/HowItWorks";
-import Features from "./components/Features";
-import CtaFooter from "./components/CtaFooter";
+import Hero from "./components/home/Hero";
+import StatsStrip from "./components/home/StatsStrip";
+import HowItWorks from "./components/home/HowItWorks";
+import Features from "./components/home/Features";
+import Cta from "./components/home/Cta";
+import Footer from "./components/Footer";
 
 export default function Home() {
   return (
@@ -13,7 +14,8 @@ export default function Home() {
       <StatsStrip />
       <HowItWorks />
       <Features />
-      <CtaFooter />
+      <Cta />
+      <Footer />
     </>
   );
 }

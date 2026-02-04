@@ -33,10 +33,10 @@ export default function HowItWorks() {
         {steps.map((s) => (
           <div
             key={s.num}
-            className="group relative overflow-hidden rounded-[14px] border border-white/[0.06] bg-[#11131a] p-8 transition-all duration-300 hover:-translate-y-1 hover:border-white/[0.14]"
+            className="group relative overflow-hidden rounded-[14px] border border-white/6 bg-[#11131a] p-8 transition-all duration-300 hover:-translate-y-1 hover:border-white/14"
           >
             {/* Top-edge glow */}
-            <div className="absolute inset-x-0 top-0 h-[2px] bg-gradient-to-r from-transparent via-[#22d3ee] to-transparent opacity-0 transition-opacity duration-300 group-hover:opacity-100" />
+            <div className="absolute inset-x-0 top-0 h-[2px] bg-linear-to-r from-transparent via-[#22d3ee] to-transparent opacity-0 transition-opacity duration-300 group-hover:opacity-100" />
 
             <div className="font-display text-[2.2rem] font-extrabold leading-none text-[rgba(34,211,238,0.15)]">
               {s.num}

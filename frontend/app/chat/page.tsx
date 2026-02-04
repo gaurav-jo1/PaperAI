@@ -2,13 +2,15 @@
 
 import React, { useState, useRef, useEffect } from "react";
 import { PanelRightOpen } from "lucide-react";
-
+import SelectedFilesBadge from "../components/chat/SelectedFilesBadge";
+import DeepThinkButton from "../components/chat/DeepThinkButton";
+import SendButton from "../components/chat/SendButton";
 import { AnimatePresence } from "framer-motion";
 import ReactMarkdown from "react-markdown";
 
-import FileCarousel from "./FileCarousel";
-import { SelectedFilesBadge, DeepThinkButton, SendButton } from "../components/ui";
-import { chatApi } from "@/app/services/api";
+import FileCarousel from "../components/chat/FileCarousel";
+
+import { chatApi } from "@/app/lib/api";
 
 interface MessageBlock {
   type: string;

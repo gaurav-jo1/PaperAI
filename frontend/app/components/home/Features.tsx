@@ -35,7 +35,7 @@ export default function Features() {
         {features.map((f) => (
           <div
             key={f.title}
-            className="rounded-[14px] border border-white/[0.06] bg-[#11131a] p-9 transition-border duration-300 hover:border-white/[0.14]"
+            className="rounded-[14px] border border-white/6 bg-[#11131a] p-9 transition-border duration-300 hover:border-white/14"
           >
             <div className="text-[1.8rem]">{f.icon}</div>
             <h3 className="mt-[18px] font-display text-[1.1rem] font-bold">
