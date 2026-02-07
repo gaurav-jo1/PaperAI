@@ -1,207 +1,51 @@
 "use client";
 
-import React, { useState, useRef, useEffect } from "react";
-import { PanelRightOpen } from "lucide-react";
-import SelectedFilesBadge from "../components/chat/SelectedFilesBadge";
-import DeepThinkButton from "../components/chat/DeepThinkButton";
-import SendButton from "../components/chat/SendButton";
-import { AnimatePresence } from "framer-motion";
-import ReactMarkdown from "react-markdown";
+import Sidebar from "@/app/components/chat/Sidebar";
+import { Send } from "lucide-react";
 
-import FileCarousel from "../components/chat/FileCarousel";
-
-import { chatApi } from "@/app/lib/api";
-
-interface MessageBlock {
-  type: string;
-  text: string;
-  extras?: {
-    signature?: string;
-  };
-}
-
-interface ChatMessage {
-  role: "user" | "assistant";
-  content: string | MessageBlock[];
-}
-export default function Home() {
-  const [inputValue, setInputValue] = useState("");
-  const [isDeepThink, setIsDeepThink] = useState(false);
-  const [selectedKnowledgeFiles, setSelectedKnowledgeFiles] = useState<
-    string[]
-  >([]);
-  const [isSidebarOpen, setIsSidebarOpen] = useState(true);
-  const [sidebarFullyClosed, setSidebarFullyClosed] = useState(false);
-
-  const [messages, setMessages] = useState<ChatMessage[]>([]);
-  const [isLoading, setIsLoading] = useState(false);
-
-  const messagesEndRef = useRef<HTMLDivElement>(null);
-
-  const scrollToBottom = () => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-  };
-
-  useEffect(() => {
-    scrollToBottom();
-  }, [messages, isLoading]);
-
-  const handleInput = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
-    setInputValue(e.target.value);
-    e.target.style.height = "auto";
-    e.target.style.height = `${e.target.scrollHeight}px`;
-  };
-
-  const sendMessage = async () => {
-    if (!inputValue.trim()) return;
-
-    const userMsg: ChatMessage = { role: "user", content: inputValue };
-    setMessages((prev) => [...prev, userMsg]);
-    const currentInput = inputValue;
-    setInputValue("");
-
-    // Reset textarea height
-    const textarea = document.querySelector("textarea");
-    if (textarea) textarea.style.height = "auto";
-
-    setIsLoading(true);
-
-    try {
-      const response = await chatApi.sendMessage({
-        message: currentInput,
-        knowledge_files: selectedKnowledgeFiles,
-      });
-
-      console.log(response);
-
-      if (response && response.message) {
-        const assistantMsg: ChatMessage = {
-          role: "assistant",
-          content: response.message,
-        };
-
-        setMessages((prev) => [...prev, assistantMsg]);
-      }
-    } catch (error) {
-      console.error("Error sending message:", error);
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const openSidebar = () => {
-    setSidebarFullyClosed(false);
-    setIsSidebarOpen(true);
-  };
+export default function ChatPage() {
   return (
-    <div className="flex flex-row h-screen bg-white text-gray-900 selection:bg-gray-200 overflow-hidden">
-      <div className="flex-1 flex flex-col h-full relative">
-        {sidebarFullyClosed && (
-          <div className="absolute top-4 right-4 z-20">
-            <button
-              onClick={openSidebar}
-              className="p-2 rounded-lg text-gray-500 hover:bg-gray-100 cursor-pointer"
-              title="Open Sidebar"
-            >
-              <PanelRightOpen className="w-5 h-5" />
-            </button>
-          </div>
-        )}
+    <div className="flex h-screen w-full bg-slate-50 overflow-hidden">
+      {/* Sidebar */}
+      <Sidebar />
 
-        {/* Content Area */}
-        <div className="flex-1 flex flex-col overflow-hidden relative">
-          {messages.length === 0 ? (
-            // Initial State with Logo
-            <div className="flex-1 flex flex-col items-center justify-center p-4">
-              <h1 className="text-5xl font-extrabold tracking-tight mb-8 animate-in fade-in duration-700 ease-out slide-in-from-bottom-4 bg-linear-to-r from-gray-900 via-gray-700 to-gray-900 bg-clip-text text-transparent drop-shadow-sm">
+      {/* Main Content Area */}
+      <main className="flex-1 flex flex-col items-center justify-center p-4 relative overflow-hidden">
+        {/* Background Gradients */}
+        <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-cyan-200/30 rounded-full blur-3xl -translate-y-1/2 translate-x-1/3" />
+        <div className="absolute bottom-0 left-0 w-[500px] h-[500px] bg-blue-200/30 rounded-full blur-3xl translate-y-1/3 -translate-x-1/3" />
+
+        <div className="w-full max-w-2xl flex flex-col items-center animate-in fade-in zoom-in duration-500 relative z-10">
+          {/* 1. Heading */}
+          <div className="text-center mb-8">
+            <h1 className="text-3xl md:text-4xl font-extrabold tracking-tighter">
+              <span className="bg-linear-to-r from-cyan-500 to-blue-600 bg-clip-text text-transparent">
                 PaperAI
-              </h1>
-            </div>
-          ) : (
-            // Chat Messages
-            <div className="flex-1 overflow-y-auto p-4 custom-scrollbar">
-              <div className="max-w-3xl mx-auto flex flex-col gap-6 py-4">
-                {messages.map((msg, idx) => (
-                  <div
-                    key={idx}
-                    className={`flex ${msg.role === "user" ? "justify-end" : "justify-start"}`}
-                  >
-                    {msg.role === "user" ? (
-                      <div className="bg-gray-100 px-4 py-2.5 rounded-2xl rounded-tr-sm max-w-[85%] text-gray-900">
-                        <div className="whitespace-pre-wrap">
-                          {msg.content as string}
-                        </div>
-                      </div>
-                    ) : (
-                      <div className="w-full text-gray-900 pr-4">
-                        <div className="prose prose-slate max-w-none prose-p:leading-relaxed prose-pre:bg-gray-50 prose-pre:border prose-pre:border-gray-200 prose-headings:font-medium">
-                          <ReactMarkdown>{msg.content as string}</ReactMarkdown>
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                ))}
-                {/* Loading State */}
-                {isLoading && (
-                  <div className="flex justify-start">
-                    <div className="text-gray-400 text-sm animate-pulse ml-1">
-                      PaperAI thinking...
-                    </div>
-                  </div>
-                )}
-                <div ref={messagesEndRef} />
-              </div>
-            </div>
-          )}
-        </div>
+              </span>
+            </h1>
+          </div>
 
-        {/* Input Area */}
-        <div className="w-full flex justify-center pb-8 px-4 z-10 pt-2">
-          <div className="w-full max-w-3xl flex flex-col bg-gray-50 border border-gray-200 rounded-3xl shadow-sm focus-within:shadow-md transition-shadow duration-300">
-            <SelectedFilesBadge count={selectedKnowledgeFiles.length} />
-
-            <div className="p-4 pb-2">
-              <textarea
-                value={inputValue}
-                onChange={handleInput}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter" && !e.shiftKey) {
-                    e.preventDefault();
-                    sendMessage();
-                  }
-                }}
-                placeholder="Ask anything..."
-                className="w-full max-h-48 min-h-[44px] bg-transparent border-none focus:ring-0 resize-none text-base text-gray-900 placeholder:text-gray-400 outline-none"
-                rows={1}
+          {/* 2. Input Bar */}
+          <div className="w-full relative group max-w-xl mb-3">
+            <div className="absolute inset-0 bg-linear-to-r from-cyan-400 to-blue-400 rounded-full blur-md opacity-30 group-hover:opacity-50 transition-opacity duration-300" />
+            <div className="relative flex items-center bg-white/80 backdrop-blur-sm border border-cyan-100 rounded-full shadow-sm hover:shadow-md transition-all duration-200">
+              <input
+                type="text"
+                placeholder="Ask me anything..."
+                className="w-full py-3 pl-6 pr-14 text-sm bg-transparent border-none outline-none focus:outline-none focus:ring-0 text-slate-800 placeholder:text-slate-400"
               />
-            </div>
-
-            <div className="px-3 pb-3 flex justify-between items-center">
-              <DeepThinkButton
-                isActive={isDeepThink}
-                onClick={() => setIsDeepThink(!isDeepThink)}
-              />
-
-              <div className="flex items-center gap-2">
-                <SendButton
-                  disabled={!inputValue.trim() || isLoading}
-                  onClick={sendMessage}
-                />
-              </div>
+              <button className="absolute right-2 p-2 bg-linear-to-r from-cyan-500 to-blue-600 text-white rounded-full hover:opacity-90 transition-opacity shadow-sm">
+                <Send size={16} />
+              </button>
             </div>
           </div>
-        </div>
-      </div>
 
-      <AnimatePresence onExitComplete={() => setSidebarFullyClosed(true)}>
-        {isSidebarOpen && (
-          <FileCarousel
-            selectedFileIds={selectedKnowledgeFiles}
-            onSelectionChange={setSelectedKnowledgeFiles}
-            onClose={() => setIsSidebarOpen(false)}
-          />
-        )}
-      </AnimatePresence>
+          {/* 3. Subtext */}
+          <p className="text-slate-400 text-xs font-medium text-center animate-pulse tracking-wide">
+            Start a conversation to see the magic happen
+          </p>
+        </div>
+      </main>
     </div>
   );
 }
