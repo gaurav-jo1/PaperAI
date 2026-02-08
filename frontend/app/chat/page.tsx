@@ -1,13 +1,61 @@
 "use client";
 
+import { useState, useEffect } from "react";
 import Sidebar from "@/app/components/chat/Sidebar";
-import { Send } from "lucide-react";
+import { Send, FileText } from "lucide-react";
+import { fileApi } from "@/app/lib/api";
+import type { FileItem } from "@/app/types/file";
+import { motion, AnimatePresence } from "framer-motion";
 
 export default function ChatPage() {
+  const [files, setFiles] = useState<FileItem[]>([]);
+  const [isLoadingFiles, setIsLoadingFiles] = useState(true);
+  const [selectedDocIds, setSelectedDocIds] = useState<Set<string>>(new Set());
+
+  const fetchFiles = async () => {
+    try {
+      const data = await fileApi.getFiles();
+      setFiles(data);
+    } catch (error) {
+      console.error("Failed to fetch files:", error);
+    } finally {
+      setIsLoadingFiles(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchFiles();
+  }, []);
+
+  const toggleSelectAll = () => {
+    if (selectedDocIds.size === files.length) {
+      setSelectedDocIds(new Set());
+    } else {
+      setSelectedDocIds(new Set(files.map((f) => f.id)));
+    }
+  };
+
+  const toggleSelectDoc = (id: string) => {
+    const newSelected = new Set(selectedDocIds);
+    if (newSelected.has(id)) {
+      newSelected.delete(id);
+    } else {
+      newSelected.add(id);
+    }
+    setSelectedDocIds(newSelected);
+  };
+
   return (
     <div className="flex h-screen w-full bg-slate-50 overflow-hidden">
       {/* Sidebar */}
-      <Sidebar />
+      <Sidebar
+        files={files}
+        isLoadingFiles={isLoadingFiles}
+        selectedDocIds={selectedDocIds}
+        onToggleSelectDoc={toggleSelectDoc}
+        onToggleSelectAll={toggleSelectAll}
+        onRefreshFiles={fetchFiles}
+      />
 
       {/* Main Content Area */}
       <main className="flex-1 flex flex-col items-center justify-center p-4 relative overflow-hidden">
@@ -32,9 +80,29 @@ export default function ChatPage() {
               <input
                 type="text"
                 placeholder="Ask me anything..."
-                className="w-full py-3 pl-6 pr-14 text-sm bg-transparent border-none outline-none focus:outline-none focus:ring-0 text-slate-800 placeholder:text-slate-400"
+                className="w-full py-3 pl-6 pr-32 text-sm bg-transparent border-none outline-none focus:outline-none focus:ring-0 text-slate-800 placeholder:text-slate-400"
               />
-              <button className="absolute right-2 p-2 bg-linear-to-r from-cyan-500 to-blue-600 text-white rounded-full hover:opacity-90 transition-opacity shadow-sm">
+
+              {/* Selection Badge inside Input */}
+              <AnimatePresence>
+                {selectedDocIds.size > 0 && (
+                  <motion.div
+                    initial={{ opacity: 0, scale: 0.8 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    exit={{ opacity: 0, scale: 0.8 }}
+                    className="absolute right-12 flex items-center"
+                  >
+                    <div className="flex items-center space-x-1.5 bg-cyan-50 text-cyan-700 px-2.5 py-1 rounded-full border border-cyan-100">
+                      <FileText size={12} />
+                      <span className="text-xs font-medium whitespace-nowrap">
+                        {selectedDocIds.size} selected
+                      </span>
+                    </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+
+              <button className="absolute right-2 p-2 bg-linear-to-r from-cyan-500 to-blue-600 text-white rounded-full hover:opacity-90 transition-opacity shadow-sm cursor-pointer z-10">
                 <Send size={16} />
               </button>
             </div>

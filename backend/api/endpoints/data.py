@@ -1,6 +1,6 @@
 from fastapi import APIRouter, UploadFile, File, Depends
 from sqlalchemy.orm import Session
-from api.dependencies import get_db
+from db.dependencies import get_db
 from services.file_service import process_file_upload, user_id
 from db.user_files import UserFiles
 
