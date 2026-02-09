@@ -12,7 +12,7 @@ class UserFiles(Base):
     )
     file_name = Column(String, nullable=False)
     user_id = Column(PG_UUID(as_uuid=True), nullable=False)
-    file_id = Column(PG_UUID(as_uuid=True), nullable=False)
+    file_id = Column(PG_UUID(as_uuid=True), nullable=False, default=uuid.uuid4)
     number_of_pages = Column(Integer, nullable=False)
     created_at = Column(
         DateTime(timezone=True), server_default=func.now(), nullable=False
