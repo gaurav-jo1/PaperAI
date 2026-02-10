@@ -43,6 +43,22 @@ def _sync_upsert(records, namespace):
     index.upsert(vectors=records, namespace=namespace)
 
 
+def _embed_dense(batch_texts):
+    return pc.inference.embed(
+        model="llama-text-embed-v2",
+        inputs=batch_texts,
+        parameters={"input_type": "passage", "truncate": "END"},
+    )
+
+
+def _embed_sparse(batch_texts):
+    return pc.inference.embed(
+        model="pinecone-sparse-english-v0",
+        inputs=batch_texts,
+        parameters={"input_type": "passage", "truncate": "END"},
+    )
+
+
 async def insert_postgres_db(file_name, user_file, db: AsyncSession):
 
     try:
@@ -59,25 +75,19 @@ async def insert_postgres_db(file_name, user_file, db: AsyncSession):
 
 
 async def insert_vector_db(documents, file_name, user_file):
+    print(f"Starting vector DB upload for {file_name}...")
 
     all_splits = await asyncio.to_thread(_sync_split_documents, documents)
 
-    batch_size = 50
+    BATCH_SIZE = 50
 
-    for i in range(0, len(all_splits), batch_size):
-        batch_chunks = all_splits[i : i + batch_size]
+    for i in range(0, len(all_splits), BATCH_SIZE):
+        batch_chunks = all_splits[i : i + BATCH_SIZE]
         batch_texts = [chunk.page_content for chunk in batch_chunks]
 
-        dense_embeddings = pc.inference.embed(
-            model="llama-text-embed-v2",
-            inputs=batch_texts,
-            parameters={"input_type": "passage", "truncate": "END"},
-        )
-
-        sparse_embeddings = pc.inference.embed(
-            model="pinecone-sparse-english-v0",
-            inputs=batch_texts,
-            parameters={"input_type": "passage", "truncate": "END"},
+        dense_embeddings, sparse_embeddings = await asyncio.gather(
+            asyncio.to_thread(_embed_dense, batch_texts),
+            asyncio.to_thread(_embed_sparse, batch_texts),
         )
 
         records = []
@@ -130,9 +140,10 @@ async def process_file_upload(file: UploadFile):
                 number_of_pages=len(documents),
             )
 
-            await insert_postgres_db(file_name, user_file, db)
-
-            await insert_vector_db(documents, file_name, user_file)
+            await asyncio.gather(
+                insert_postgres_db(file_name, user_file, db),
+                insert_vector_db(documents, file_name, user_file),
+            )
 
         finally:
             if os.path.exists(tmp_path):

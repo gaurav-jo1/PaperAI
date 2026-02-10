@@ -17,10 +17,9 @@ async def upload_data(files: list[UploadFile] = File(...)):
         raise HTTPException(status_code=400, detail="No files provided")
 
     try:
-        await asyncio.gather(
-            *(process_file_upload(file) for file in files), return_exceptions=True
-        )
+        await asyncio.gather(*(process_file_upload(file) for file in files))
 
+        print(f"Successfully processed {len(files)} file(s)")
         return {"message": "Files uploaded successfully"}
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Upload failed: {str(e)}")
