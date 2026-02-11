@@ -263,30 +263,30 @@ export default function Sidebar({
             ) : (
               files.map((file) => (
                 <div
-                  key={file.id}
-                  onClick={() => onToggleSelectDoc(file.id)}
+                  key={file.file_id}
+                  onClick={() => onToggleSelectDoc(file.file_id)}
                   className={`group flex items-center ${
                     isOpen ? "px-4" : "justify-center"
                   } py-2.5 rounded-lg border border-transparent transition-all cursor-pointer ${
-                    selectedDocIds.has(file.id)
+                    selectedDocIds.has(file.file_id)
                       ? "bg-[#0078D4] border-[#0078D4] shadow-md"
                       : "hover:bg-slate-100 hover:shadow-sm"
                   }`}
                 >
                   <div
-                    className={`min-w-[20px] ${selectedDocIds.has(file.id) ? "text-white" : "text-slate-400 group-hover:text-sky-600"} transition-colors`}
+                    className={`min-w-[20px] ${selectedDocIds.has(file.file_id) ? "text-white" : "text-slate-400 group-hover:text-sky-600"} transition-colors`}
                   >
                     <FileText size={18} />
                   </div>
                   {isOpen && (
                     <div className="ml-3 overflow-hidden flex-1">
                       <p
-                        className={`text-sm font-medium truncate transition-colors whitespace-nowrap ${selectedDocIds.has(file.id) ? "text-white" : "text-slate-600 group-hover:text-slate-900"}`}
+                        className={`text-sm font-medium truncate transition-colors whitespace-nowrap ${selectedDocIds.has(file.file_id) ? "text-white" : "text-slate-600 group-hover:text-slate-900"}`}
                       >
                         {file.file_name}
                       </p>
                       <p
-                        className={`text-[10px] whitespace-nowrap ${selectedDocIds.has(file.id) ? "text-slate-50" : "text-slate-400 group-hover:text-slate-500"} transition-colors`}
+                        className={`text-[10px] whitespace-nowrap ${selectedDocIds.has(file.file_id) ? "text-slate-50" : "text-slate-400 group-hover:text-slate-500"} transition-colors`}
                       >
                         {file.number_of_pages} pages •{" "}
                         {new Date(file.created_at).toLocaleDateString()}
