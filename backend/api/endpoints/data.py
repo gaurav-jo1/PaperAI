@@ -9,6 +9,7 @@ import asyncio
 
 router = APIRouter()
 
+MAX_CONCURRENT = 5
 
 @router.post("/upload")
 async def upload_data(files: list[UploadFile] = File(...)):
@@ -16,8 +17,14 @@ async def upload_data(files: list[UploadFile] = File(...)):
     if not files:
         raise HTTPException(status_code=400, detail="No files provided")
 
+    semaphore = asyncio.Semaphore(MAX_CONCURRENT)
+
+    async def process_with_semaphore(file):
+        async with semaphore:
+            return await process_file_upload(file)
+
     try:
-        await asyncio.gather(*(process_file_upload(file) for file in files))
+        await asyncio.gather(*(process_with_semaphore(file) for file in files))
 
         print(f"Successfully processed {len(files)} file(s)")
         return {"message": "Files uploaded successfully"}

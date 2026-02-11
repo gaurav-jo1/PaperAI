@@ -64,7 +64,7 @@ async def insert_postgres_db(file_name, user_file, db: AsyncSession):
     try:
         db.add(user_file)
         await db.commit()
-        print(f"Successfully inserted {file_name} to database")
+        print(f"Successfully inserted {file_name[:10]} to database")
     except IntegrityError:
         await db.rollback()
         print(f"{file_name} - File already exists (duplicate key)")
@@ -75,8 +75,6 @@ async def insert_postgres_db(file_name, user_file, db: AsyncSession):
 
 
 async def insert_vector_db(documents, file_name, user_file):
-    print(f"Starting vector DB upload for {file_name}...")
-
     all_splits = await asyncio.to_thread(_sync_split_documents, documents)
 
     BATCH_SIZE = 50
@@ -118,7 +116,7 @@ async def insert_vector_db(documents, file_name, user_file):
             api_settings.PINECONE_NAMESPACE,
         )
 
-    print(f"Uploaded {file_name} to Pinecone")
+    print(f"Successfully inserted {file_name[:10]} to Vector Database")
 
 
 async def process_file_upload(file: UploadFile):

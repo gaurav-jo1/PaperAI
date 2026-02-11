@@ -11,26 +11,22 @@ class AgentState(TypedDict):
 
 
 def retrieve_context(state: AgentState):
-    knowledge_files = state["knowledge_files"]
-    messages = state["messages"]
+    knowledge_files, user_query = state["knowledge_files"], state["messages"]
 
     if not knowledge_files:
-        return {"messages": messages}
+        return {"messages": user_query}
 
-    last_query = messages
-    top_k = len(knowledge_files) * 12
+    top_k = len(knowledge_files) * 10
 
-    # Convert the query into a dense vector
     dense_query_embedding = pc.inference.embed(
         model="llama-text-embed-v2",
-        inputs=last_query,
+        inputs=user_query,
         parameters={"input_type": "query", "truncate": "END"},
     )
 
-    # Convert the query into a sparse vector
     sparse_query_embedding = pc.inference.embed(
         model="pinecone-sparse-english-v0",
-        inputs=last_query,
+        inputs=user_query,
         parameters={"input_type": "query", "truncate": "END"},
     )
 
@@ -48,93 +44,74 @@ def retrieve_context(state: AgentState):
             filter={"file_id": {"$in": knowledge_files}},
         )
 
+
     matches = query_response.to_dict()["matches"]
-    vector_db_response = [match["metadata"]["text"] for match in matches]
 
-    system_prompt = f"""You are an intelligent assistant designed to answer questions based on retrieved document chunks from a vector database.
+    context_blocks = [
+    f"[Source: {match['metadata']['file_name']} | Page: {match['metadata']['page']}]\n{match['metadata']['text']}"
+    for match in matches
+    ]
 
-        ## Your Task
+    final_context = "\n\n".join(context_blocks)
 
-        You will receive:
-        1. **User Query**: The question or request from the user
-        2. **Retrieved Context**: Up to {len(vector_db_response)} relevant chunks from a hybrid search (combining semantic and keyword matching)
-        3. **Source Information**: File names and metadata for each chunk
+    SYSTEM_PROMPT = """
+        You are an AI assistant designed to answer user questions using only the provided context retrieved from a vector database.
 
-        ## Response Guidelines
+        Core Responsibilities:
+        - Carefully read and understand the retrieved context before answering.
+        - The context may come from multiple documents. Combine information logically when needed.
+        - If multiple documents provide conflicting information, mention the uncertainty.
+        - If the answer is not present in the context, say:
+        "I could not find this information in the provided documents."
 
-        ### Content Accuracy
-        - **Answer ONLY based on the provided SOURCE DATA below**
-        - If the answer is not found in the retrieved chunks, clearly state: "I cannot find this information in the provided documents."
-        - Do NOT use your general knowledge to supplement answers
-        - If the context is insufficient or ambiguous, acknowledge the limitation
+        Strict Rules:
+        - Do NOT make up information.
+        - Do NOT use outside knowledge unless explicitly allowed.
+        - Do NOT assume missing details.
+        - Stay grounded in the retrieved context.
 
-        ### Citation and Sources
-        - **Always cite your sources** by referencing the exact file name(s) where you found the information
-        - Use format: `According to [filename]...` or `As mentioned in [filename]...`
-        - When information comes from multiple files, cite all relevant sources
-        - Only cite files that are explicitly named in the SOURCE DATA
+        Answer Style:
+        - Be clear, concise, and helpful.
+        - Structure answers using bullet points or paragraphs when helpful.
+        - If relevant, reference document sections (if metadata is available).
 
-        ### Response Formatting
-        Use markdown extensively for clarity:
-        - **Bold** important terms, key findings, or critical information
-        - Use `numbered lists` for sequential steps or ranked items
-        - Use `bullet points` for non-sequential information
-        - Use `> blockquotes` for direct excerpts from documents
-        - Use `### Headers` to organize longer responses into sections
-        - Use `code blocks` when referring to technical terms, commands, or data
+        If Context is Empty or Irrelevant:
+        - Politely ask the user to rephrase or provide more details.
 
-        ### Response Structure
-        1. **Direct Answer**: Start with a clear, concise answer to the user's question
-        2. **Supporting Details**: Provide relevant context and elaboration from the retrieved chunks
-        3. **Source Attribution**: Clearly indicate which file(s) the information came from
+        Goal:
+        Provide accurate, context-grounded answers that help the user understand the information from their uploaded documents.
+    """
 
-        ### Handling Multiple Files
-        When context comes from multiple files:
-        - Compare and synthesize information across sources
-        - Highlight any contradictions or differences between sources
-        - Organize information logically, not just file-by-file
 
-        ### PROHIBITIONS (STRICT)
-        1. **No Meta-Commentary**: Do not include notes about what is missing, disclaimers about the sample size, or "Additional Information" sections.
-        2. **No Assumptions**: Do not guess the source of the data (e.g., book titles) if it is not explicitly named in the SOURCE DATA.
-        3. **No Conversational Filler**: Provide only the direct answer. Do not start with "Based on the data..." or "Here is the info..."
-        4. **No External Knowledge**: Do not supplement with information outside the SOURCE DATA below.
-        5. **No Speculation**: If information is not in the SOURCE DATA, do not infer or deduce beyond what is explicitly stated.
+    user_message = f"""
+        CONTEXT:{final_context}
 
-        ### Best Practices
-        - Be concise but comprehensive
-        - Maintain a helpful and professional tone
-        - If chunks seem fragmented, piece together the narrative logically
-        - Prioritize the most relevant chunks if information is redundant
+        QUESTION: {user_query}
+    """
 
-        ---
+    messages = [
+        {
+            "role": "system",
+            "content": SYSTEM_PROMPT
+        },
+        {
+            "role": "user",
+            "content": user_message
+        }
+    ]
 
-        ## SOURCE DATA
-
-        {vector_db_response}
-
-        ---
-
-        ## USER QUERY
-
-        {messages}
-
-        ---
-
-        ## YOUR RESPONSE
-
-        Provide your answer below using the formatting guidelines and prohibitions above:"""
-
-    return {"messages": system_prompt}
+    return {"messages": messages}
 
 
 def call_model(state: AgentState):
     messages = state["messages"]
     completion = client.chat.completions.create(
-        model="meta-llama/Llama-3.1-8B-Instruct",
-        messages=[{"role": "user", "content": messages}],
+        model="meta-llama/Meta-Llama-3-70B-Instruct",
+        messages=messages,
     )
+
     response = completion.choices[0].message.content
+
     return {"messages": response}
 
 
