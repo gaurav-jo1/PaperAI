@@ -8,14 +8,6 @@ https://github.com/user-attachments/assets/aa6b23fe-7266-492c-a936-787833aca459
 
 https://github.com/user-attachments/assets/28438b64-61c9-40bc-8352-331991b694d7
 
-
-## 🚀 Features
-
-- **Multi-File RAG**: Upload and index multiple PDF documents simultaneously.
-- **Folder-Based Organization**: Organize your knowledge base into logical folders like _Cases_, _Books_, _Research_, etc.
-- **Selective Knowledge**: Choose specific files or entire folders to provide context for the LLM.
-- **Seamless Integration**: Uses Pinecone for efficient vector search and Llama-3.1 for high-quality responses.
-
 ## 🛠️ Tech Stack
 
 - **Frontend**: [Next.js](https://nextjs.org/) (TypeScript, Tailwind CSS)
