@@ -70,18 +70,28 @@ def retrieve_context(state: AgentState):
         - Do NOT assume missing details.
         - Stay grounded in the retrieved context.
 
+        Markdown Response Requirements:
+        - ALWAYS generate responses in valid Markdown format.
+        - Use Markdown elements when helpful:
+        - Headings (##, ###) for sections
+        - Bullet points (-) or numbered lists (1.) for structured information
+        - Bold (**) for key terms or important notes
+        - Code blocks (```) for technical or code-related content
+        - Tables when comparing structured data (if relevant)
+        - Keep formatting clean and readable.
+        - Do NOT include raw HTML unless explicitly requested.
+
         Answer Style:
         - Be clear, concise, and helpful.
-        - Structure answers using bullet points or paragraphs when helpful.
+        - Prefer structured Markdown over plain text when it improves clarity.
         - If relevant, reference document sections (if metadata is available).
 
         If Context is Empty or Irrelevant:
         - Politely ask the user to rephrase or provide more details.
 
         Goal:
-        Provide accurate, context-grounded answers that help the user understand the information from their uploaded documents.
+        Provide accurate, context-grounded answers that help the user understand the information from their uploaded documents, formatted clearly using Markdown.
     """
-
 
     user_message = f"""
         CONTEXT:{final_context}
@@ -106,7 +116,7 @@ def retrieve_context(state: AgentState):
 def call_model(state: AgentState):
     messages = state["messages"]
     completion = client.chat.completions.create(
-        model="meta-llama/Meta-Llama-3-70B-Instruct",
+        model="meta-llama/Llama-3.3-70B-Instruct",
         messages=messages,
     )
 
