@@ -1,3 +1,4 @@
+from typing import List
 from pydantic_settings import BaseSettings
 
 
@@ -14,6 +15,7 @@ class Settings(BaseSettings):
     PINECONE_NAMESPACE: str
     GEMINI_API_KEY: str
     HUGGING_FACE_KEY: str
+    ALLOWED_ORIGINS: List[str]
 
 
 api_settings = Settings()
