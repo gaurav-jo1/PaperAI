@@ -6,10 +6,13 @@ from db.user_files import UserFiles
 from db.pinecone_client import index
 from settings.settings import api_settings
 import asyncio
+from typing import List
+from schemas.user_files import UserFiles as UserFilesSchema
 
 router = APIRouter()
 
 MAX_CONCURRENT = 5
+
 
 @router.post("/upload")
 async def upload_data(files: list[UploadFile] = File(...)):
@@ -32,7 +35,7 @@ async def upload_data(files: list[UploadFile] = File(...)):
         raise HTTPException(status_code=500, detail=f"Upload failed: {str(e)}")
 
 
-@router.get("/files")
+@router.get("/files", response_model=List[UserFilesSchema])
 async def get_files(db: Session = Depends(get_db)):
     files = db.query(UserFiles).filter(UserFiles.user_id == user_id).all()
     return files
