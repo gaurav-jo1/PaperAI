@@ -2,7 +2,7 @@ services:
   ml-backend:
     build:
       context: ./backend
-      dockerfile: Dockerfile
+      dockerfile: Dockerfile.dev
     container_name: paperai_ml-backend_c
     env_file:
       - ./backend/.env
