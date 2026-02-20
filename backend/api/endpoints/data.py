@@ -7,6 +7,7 @@ from db.pinecone_client import index
 from settings.settings import api_settings
 import asyncio
 from typing import List
+from fastapi import status
 from schemas.user_files import UserFiles as UserFilesSchema
 
 router = APIRouter()
@@ -14,9 +15,8 @@ router = APIRouter()
 MAX_CONCURRENT = 5
 
 
-@router.post("/upload")
-async def upload_data(files: list[UploadFile] = File(...)):
-
+@router.post("/upload", status_code=status.HTTP_201_CREATED)
+async def upload_data_new(files: list[UploadFile] = File(...)):
     if not files:
         raise HTTPException(status_code=400, detail="No files provided")
 
@@ -29,7 +29,6 @@ async def upload_data(files: list[UploadFile] = File(...)):
     try:
         await asyncio.gather(*(process_with_semaphore(file) for file in files))
 
-        print(f"Successfully processed {len(files)} file(s)")
         return {"message": "Files uploaded successfully"}
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Upload failed: {str(e)}")

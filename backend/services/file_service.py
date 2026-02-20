@@ -1,41 +1,22 @@
-import os
-import shutil
-import tempfile
 import asyncio
+import os
+import tempfile
 import uuid
-from sqlalchemy.ext.asyncio import AsyncSession
+from pathlib import Path
+
 from fastapi import UploadFile
 from langchain_community.document_loaders import PyMuPDFLoader
+from langchain_core.documents import Document
 from langchain_text_splitters import RecursiveCharacterTextSplitter
-from db.user_files import UserFiles
-from db.pinecone_client import index, pc
-from settings.settings import api_settings
 from sqlalchemy.exc import IntegrityError
+from sqlalchemy.ext.asyncio import AsyncSession
+
 from db.database import AsyncSessionLocal
+from db.pinecone_client import index, pc
+from db.user_files import UserFiles
+from settings.settings import api_settings
 
 user_id = "2c117f72-d92f-4b2e-a290-563842bcf65c"
-
-
-def _sync_copy_file(src_file, dest_path):
-    """Copy uploaded file to temp location (BLOCKING I/O)"""
-    with open(dest_path, "wb") as dest:
-        shutil.copyfileobj(src_file, dest)
-
-
-def _sync_load_pdf(path):
-    """Load PDF and extract pages (BLOCKING I/O)"""
-    loader = PyMuPDFLoader(path)
-    return loader.load()
-
-
-def _sync_split_documents(documents):
-    """Split documents into chunks (CPU-BOUND)"""
-    text_splitter = RecursiveCharacterTextSplitter(
-        chunk_size=1000,
-        chunk_overlap=200,
-        add_start_index=True,
-    )
-    return text_splitter.split_documents(documents)
 
 
 def _sync_upsert(records, namespace):
@@ -59,8 +40,23 @@ def _embed_sparse(batch_texts):
     )
 
 
-async def insert_postgres_db(file_name, user_file, db: AsyncSession):
+def _sync_load_pdf(path):
+    """Load PDF and extract pages (BLOCKING I/O)"""
+    loader = PyMuPDFLoader(path)
+    return loader.load()
 
+
+def _sync_split_documents(documents):
+    """Split documents into chunks (CPU-BOUND)"""
+    text_splitter = RecursiveCharacterTextSplitter(
+        chunk_size=1000,
+        chunk_overlap=200,
+        add_start_index=True,
+    )
+    return text_splitter.split_documents(documents)
+
+
+async def insert_postgres_db(file_name, user_file, db: AsyncSession):
     try:
         db.add(user_file)
         await db.commit()
@@ -119,17 +115,30 @@ async def insert_vector_db(documents, file_name, user_file):
     print(f"Successfully inserted {file_name[:10]} to Vector Database")
 
 
-async def process_file_upload(file: UploadFile):
-
-    file_name = (file.filename.split(".")[0]).strip()
-
-    async with AsyncSessionLocal() as db:
-        with tempfile.NamedTemporaryFile(delete=False, suffix=".pdf") as tmp_file:
-            tmp_path = tmp_file.name
+async def parse_pdf_from_upload(file: UploadFile) -> list[Document]:
+    """Use PyMuPDFLoader with a temp file — no permanent disk saving."""
+    with tempfile.NamedTemporaryFile(delete=False, suffix=".pdf") as tmp_file:
+        tmp_path = tmp_file.name
 
         try:
-            await asyncio.to_thread(_sync_copy_file, file.file, tmp_path)
+            documents = await asyncio.to_thread(_sync_load_pdf, tmp_path)
+        finally:
+            if os.path.exists(tmp_path):
+                os.remove(tmp_path)
 
+        return documents
+
+
+async def process_file_upload(file: UploadFile):
+    file_name = (file.filename.split(".")[0]).strip()
+
+    with tempfile.NamedTemporaryFile(delete=False, suffix=".pdf") as tmp_file:
+        tmp_path = tmp_file.name
+
+    async with AsyncSessionLocal() as db:
+        try:
+            content = await file.read()
+            await asyncio.to_thread(lambda: Path(tmp_path).write_bytes(content))
             documents = await asyncio.to_thread(_sync_load_pdf, tmp_path)
 
             user_file = UserFiles(
