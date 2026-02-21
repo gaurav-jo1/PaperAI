@@ -5,3 +5,4 @@ from typing import List
 class ChatRequest(BaseModel):
     message: str
     knowledge_files: List[str]
+    research_mode: bool = True

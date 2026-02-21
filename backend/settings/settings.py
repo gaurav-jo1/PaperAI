@@ -16,6 +16,7 @@ class Settings(BaseSettings):
     GEMINI_API_KEY: str
     HUGGING_FACE_KEY: str
     ALLOWED_ORIGINS: List[str]
+    TAVILY_API_KEY: str
 
 
 api_settings = Settings()

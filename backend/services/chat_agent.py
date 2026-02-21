@@ -45,7 +45,7 @@ def retrieve_context(state: AgentState):
         )
 
 
-    matches = query_response.to_dict()["matches"]
+    matches = query_response["matches"]
 
     context_blocks = [
     f"[Source: {match['metadata']['file_name']} | Page: {match['metadata']['page']}]\n{match['metadata']['text']}"
