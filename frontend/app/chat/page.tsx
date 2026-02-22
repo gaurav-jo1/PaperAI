@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import Sidebar from "@/app/components/chat/Sidebar";
 import ChatArea from "@/app/components/chat/ChatArea";
 import ChatInput from "@/app/components/chat/ChatInput";
-import { fileApi, chatApi } from "@/app/lib/api";
+import { fileApi, chatApi, researchApi } from "@/app/lib/api";
 import type { FileItem } from "@/app/types/file";
 import type { Message } from "@/app/components/chat/ChatArea";
 
@@ -14,6 +14,7 @@ export default function ChatPage() {
   const [selectedDocIds, setSelectedDocIds] = useState<Set<string>>(new Set());
   const [messages, setMessages] = useState<Message[]>([]);
   const [isLoading, setIsLoading] = useState(false);
+  const [isDeepResearch, setIsDeepResearch] = useState(false);
 
   const fetchFiles = async () => {
     try {
@@ -54,10 +55,18 @@ export default function ChatPage() {
     setIsLoading(true);
 
     try {
-      const response = await chatApi.sendMessage({
-        message,
-        knowledge_files: Array.from(selectedDocIds),
-      });
+      let response;
+      if (isDeepResearch) {
+        response = await researchApi.getResearchPlan({
+          message,
+          knowledge_files: Array.from(selectedDocIds),
+        });
+      } else {
+        response = await chatApi.sendMessage({
+          message,
+          knowledge_files: Array.from(selectedDocIds),
+        });
+      }
 
       setMessages((prev) => [
         ...prev,
@@ -96,13 +105,19 @@ export default function ChatPage() {
         <div className="absolute bottom-0 left-0 w-[500px] h-[500px] bg-blue-200/30 rounded-full blur-3xl translate-y-1/3 -translate-x-1/3 pointer-events-none" />
 
         {/* Chat Area (empty state or messages) */}
-        <ChatArea messages={messages} isLoading={isLoading} />
+        <ChatArea
+          messages={messages}
+          isLoading={isLoading}
+          isDeepResearch={isDeepResearch}
+        />
 
         {/* Bottom Input */}
         <ChatInput
           onSend={handleSend}
           isLoading={isLoading}
           selectedDocIds={selectedDocIds}
+          isDeepResearch={isDeepResearch}
+          onToggleDeepResearch={() => setIsDeepResearch(!isDeepResearch)}
         />
       </main>
     </div>

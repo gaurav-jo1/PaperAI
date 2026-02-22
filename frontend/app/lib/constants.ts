@@ -4,4 +4,6 @@ export const API_ENDPOINTS = {
     FILES: `${API_BASE_URL}/data/files`,
     UPLOAD: `${API_BASE_URL}/data/upload`,
     CHAT: `${API_BASE_URL}/chat/`,
+    RESEARCH_PLAN: `${API_BASE_URL}/chat/research/plan/`,
+    RESEARCH_EXECUTE: `${API_BASE_URL}/chat/research/execute/`,
 } as const;

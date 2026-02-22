@@ -5,7 +5,7 @@ from services.research_agent import research_plan
 from fastapi import status
 router = APIRouter()
 
-@router.post("/chat")
+@router.post("/")
 async def chat(data: ChatRequest):
     result = agent_app.invoke({
         "messages": data.message,
@@ -22,7 +22,7 @@ async def create_research_plan(data: ResearchRequest):
 
         return {
             # "session_id": session_id,
-            "plan": plan
+            "message": plan
         }
 
     except ValueError as e:

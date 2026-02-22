@@ -39,3 +39,23 @@ export const chatApi = {
         return response.data;
     },
 };
+
+
+export const researchApi = {
+    getResearchPlan: async (payload: ChatPayload) => {
+        const response = await axios.post(API_ENDPOINTS.RESEARCH_PLAN, payload, {
+            headers: {
+                "Content-Type": "application/json",
+            },
+        });
+        return response.data;
+    },
+    getResearchExecute: async (payload: ChatPayload) => {
+        const response = await axios.post(API_ENDPOINTS.RESEARCH_EXECUTE, payload, {
+            headers: {
+                "Content-Type": "application/json",
+            },
+        });
+        return response.data;
+    },
+};
