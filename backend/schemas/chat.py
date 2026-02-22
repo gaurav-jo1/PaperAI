@@ -5,4 +5,10 @@ from typing import List
 class ChatRequest(BaseModel):
     message: str
     knowledge_files: List[str]
-    research_mode: bool = True
+
+class ResearchRequest(BaseModel):
+    message: str
+    knowledge_files: List[str]
+
+class ExecuteRequest(BaseModel):
+    session_id: str
