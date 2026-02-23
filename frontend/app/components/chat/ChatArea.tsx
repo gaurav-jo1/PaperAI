@@ -2,24 +2,34 @@
 
 import { useEffect, useRef } from "react";
 import { motion } from "framer-motion";
-import { Loader2 } from "lucide-react";
+import { Loader2, NotebookPen } from "lucide-react";
 import ChatMessage from "./ChatMessage";
+import ResearchPlanMessage from "./ResearchPlanMessage";
 
 export interface Message {
+  id: string;
   role: "user" | "assistant";
   content: string;
+  isResearchPlan?: boolean;
+  planAccepted?: boolean;
 }
 
 interface ChatAreaProps {
   messages: Message[];
   isLoading: boolean;
   isDeepResearch: boolean;
+  loadingText?: string;
+  onAcceptPlan?: (msg: Message) => void;
+  onDeclinePlan?: (msg: Message) => void;
 }
 
 export default function ChatArea({
   messages,
   isLoading,
   isDeepResearch,
+  loadingText,
+  onAcceptPlan,
+  onDeclinePlan,
 }: ChatAreaProps) {
   const scrollRef = useRef<HTMLDivElement>(null);
 
@@ -50,7 +60,9 @@ export default function ChatArea({
           </div>
 
           {/* Subtext */}
-          <p className="text-slate-400 text-xs font-medium text-center animate-pulse tracking-wide transition-all duration-300">
+          <p
+            className={`${isDeepResearch ? "text-sm" : "text-xs"} text-slate-400  font-medium text-center animate-pulse tracking-wide transition-all duration-300`}
+          >
             {isDeepResearch
               ? "AI-powered financial analysis using specialized research agents"
               : "Start a conversation to see the magic happen"}
@@ -67,9 +79,19 @@ export default function ChatArea({
       className="flex-1 overflow-y-auto px-4 py-6 scroll-smooth"
     >
       <div className="max-w-3xl mx-auto space-y-5">
-        {messages.map((msg, i) => (
-          <ChatMessage key={i} role={msg.role} content={msg.content} />
-        ))}
+        {messages.map((msg) =>
+          msg.isResearchPlan ? (
+            <ResearchPlanMessage
+              key={msg.id}
+              content={msg.content}
+              isAccepted={!!msg.planAccepted}
+              onAccept={() => onAcceptPlan?.(msg)}
+              onDecline={() => onDeclinePlan?.(msg)}
+            />
+          ) : (
+            <ChatMessage key={msg.id} role={msg.role} content={msg.content} />
+          ),
+        )}
 
         {/* Typing indicator while waiting for response */}
         {isLoading && (
@@ -83,21 +105,30 @@ export default function ChatArea({
             >
               <Loader2 size={16} className="animate-spin" />
             </div>
-            <div className="bg-white border border-slate-100 rounded-2xl rounded-tl-sm px-4 py-3 shadow-sm">
-              <div className="flex items-center space-x-1.5">
-                <span
-                  className={`w-2 h-2 rounded-full animate-bounce transition-colors duration-300 ${isDeepResearch ? "bg-indigo-400" : "bg-cyan-400"}`}
-                  style={{ animationDelay: "0ms" }}
-                />
-                <span
-                  className={`w-2 h-2 rounded-full animate-bounce transition-colors duration-300 ${isDeepResearch ? "bg-indigo-400" : "bg-cyan-400"}`}
-                  style={{ animationDelay: "150ms" }}
-                />
-                <span
-                  className={`w-2 h-2 rounded-full animate-bounce transition-colors duration-300 ${isDeepResearch ? "bg-indigo-400" : "bg-cyan-400"}`}
-                  style={{ animationDelay: "300ms" }}
-                />
-              </div>
+            <div className="bg-white border border-slate-100 rounded-2xl rounded-tl-sm px-4 py-3 shadow-sm flex items-center gap-3">
+              {loadingText ? (
+                <>
+                  <span className="text-sm text-slate-600 font-medium">
+                    {loadingText}
+                  </span>
+                  <NotebookPen className="w-4 h-4 text-slate-500 animate-pulse" />
+                </>
+              ) : (
+                <div className="flex items-center space-x-1.5 h-5">
+                  <span
+                    className={`w-2 h-2 rounded-full animate-bounce transition-colors duration-300 ${isDeepResearch ? "bg-indigo-400" : "bg-cyan-400"}`}
+                    style={{ animationDelay: "0ms" }}
+                  />
+                  <span
+                    className={`w-2 h-2 rounded-full animate-bounce transition-colors duration-300 ${isDeepResearch ? "bg-indigo-400" : "bg-cyan-400"}`}
+                    style={{ animationDelay: "150ms" }}
+                  />
+                  <span
+                    className={`w-2 h-2 rounded-full animate-bounce transition-colors duration-300 ${isDeepResearch ? "bg-indigo-400" : "bg-cyan-400"}`}
+                    style={{ animationDelay: "300ms" }}
+                  />
+                </div>
+              )}
             </div>
           </motion.div>
         )}

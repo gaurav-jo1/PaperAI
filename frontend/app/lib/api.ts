@@ -29,6 +29,11 @@ export interface ChatPayload {
     knowledge_files: string[];
 }
 
+export interface ResearchPayload {
+    plan: string;
+    knowledge_files: string[];
+}
+
 export const chatApi = {
     sendMessage: async (payload: ChatPayload) => {
         const response = await axios.post(API_ENDPOINTS.CHAT, payload, {
@@ -50,7 +55,7 @@ export const researchApi = {
         });
         return response.data;
     },
-    getResearchExecute: async (payload: ChatPayload) => {
+    getResearchExecute: async (payload: ResearchPayload) => {
         const response = await axios.post(API_ENDPOINTS.RESEARCH_EXECUTE, payload, {
             headers: {
                 "Content-Type": "application/json",

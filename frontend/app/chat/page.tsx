@@ -15,6 +15,7 @@ export default function ChatPage() {
   const [messages, setMessages] = useState<Message[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [isDeepResearch, setIsDeepResearch] = useState(false);
+  const [loadingText, setLoadingText] = useState<string | undefined>();
 
   const fetchFiles = async () => {
     try {
@@ -51,39 +52,115 @@ export default function ChatPage() {
 
   const handleSend = async (message: string) => {
     // Append user message immediately
-    setMessages((prev) => [...prev, { role: "user", content: message }]);
+    const userMsgId = crypto.randomUUID();
+    setMessages((prev) => [
+      ...prev,
+      { id: userMsgId, role: "user", content: message },
+    ]);
     setIsLoading(true);
+    setLoadingText(
+      isDeepResearch
+        ? "Analyzing query and generating structured research plan…"
+        : undefined,
+    );
 
     try {
-      let response;
+      let response: any;
       if (isDeepResearch) {
         response = await researchApi.getResearchPlan({
           message,
           knowledge_files: Array.from(selectedDocIds),
         });
+
+        const planContent =
+          response.plan || response.message || JSON.stringify(response);
+        setMessages((prev) => [
+          ...prev,
+          {
+            id: crypto.randomUUID(),
+            role: "assistant",
+            content: planContent,
+            isResearchPlan: true,
+            planAccepted: false,
+          },
+        ]);
       } else {
         response = await chatApi.sendMessage({
           message,
           knowledge_files: Array.from(selectedDocIds),
         });
-      }
 
-      setMessages((prev) => [
-        ...prev,
-        { role: "assistant", content: response.message },
-      ]);
+        setMessages((prev) => [
+          ...prev,
+          {
+            id: crypto.randomUUID(),
+            role: "assistant",
+            content: response.message,
+          },
+        ]);
+      }
     } catch (error) {
       console.error("Chat error:", error);
       setMessages((prev) => [
         ...prev,
         {
+          id: crypto.randomUUID(),
           role: "assistant",
           content: "Sorry, something went wrong. Please try again.",
         },
       ]);
     } finally {
       setIsLoading(false);
+      setLoadingText(undefined);
     }
+  };
+
+  const handleAcceptPlan = async (msg: Message) => {
+    setMessages((prev) =>
+      prev.map((m) => (m.id === msg.id ? { ...m, planAccepted: true } : m)),
+    );
+
+    setLoadingText(undefined);
+    setIsLoading(true);
+
+    try {
+      const response = await researchApi.getResearchExecute({
+        plan: msg.content,
+        knowledge_files: Array.from(selectedDocIds),
+      });
+
+      setMessages((prev) => [
+        ...prev,
+        {
+          id: crypto.randomUUID(),
+          role: "assistant",
+          content: response.message,
+        },
+      ]);
+    } catch (error) {
+      console.error("Execution error:", error);
+      setMessages((prev) => [
+        ...prev,
+        {
+          id: crypto.randomUUID(),
+          role: "assistant",
+          content: "Failed to execute research plan. Please try again.",
+        },
+      ]);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleDeclinePlan = (msg: Message) => {
+    setMessages((prev) => [
+      ...prev,
+      {
+        id: crypto.randomUUID(),
+        role: "assistant",
+        content: "Research plan declined by user.",
+      },
+    ]);
   };
 
   return (
@@ -104,11 +181,13 @@ export default function ChatPage() {
         <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-cyan-200/30 rounded-full blur-3xl -translate-y-1/2 translate-x-1/3 pointer-events-none" />
         <div className="absolute bottom-0 left-0 w-[500px] h-[500px] bg-blue-200/30 rounded-full blur-3xl translate-y-1/3 -translate-x-1/3 pointer-events-none" />
 
-        {/* Chat Area (empty state or messages) */}
         <ChatArea
           messages={messages}
           isLoading={isLoading}
           isDeepResearch={isDeepResearch}
+          loadingText={loadingText}
+          onAcceptPlan={handleAcceptPlan}
+          onDeclinePlan={handleDeclinePlan}
         />
 
         {/* Bottom Input */}
