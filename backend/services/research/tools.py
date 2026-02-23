@@ -26,11 +26,11 @@ def internet_search(
                - "news" for recent news articles and events
                - "finance" for stock prices, earnings, market data
         include_raw_content: If True, returns full page content instead of snippets.
-                             Use only when deep reading of a source is needed.
+        Use only when deep reading of a source is needed.
     """
     return tavily_client.search(
         query,
-        max_results=max_results,
+        max_results=int(max_results),
         include_raw_content=include_raw_content,
         topic=topic,
     )

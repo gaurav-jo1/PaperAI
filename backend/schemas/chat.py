@@ -11,4 +11,5 @@ class ResearchRequest(BaseModel):
     knowledge_files: List[str]
 
 class ExecuteRequest(BaseModel):
-    session_id: str
+    plan: str
+    knowledge_files: List[str]

@@ -1,7 +1,7 @@
 from fastapi import APIRouter
-from schemas.chat import ChatRequest, ResearchRequest
+from schemas.chat import ChatRequest, ResearchRequest, ExecuteRequest
 from services.chat_agent import agent_app
-from services.research_agent import research_plan
+from services.research_agent import research_plan, research_app
 from fastapi import status
 router = APIRouter()
 
@@ -15,13 +15,10 @@ async def chat(data: ChatRequest):
 
 @router.post("/research/plan", status_code=status.HTTP_201_CREATED)
 async def create_research_plan(data: ResearchRequest):
-
     try:
         plan = research_plan(data.message)
-        # session_id = save_plan_to_db(plan)
 
         return {
-            # "session_id": session_id,
             "message": plan
         }
 
@@ -30,10 +27,14 @@ async def create_research_plan(data: ResearchRequest):
     except Exception as e:
         print(f"Something went wrong: {e}")
 
-# @router.post("/research/execute")
-# async def execute_research(data: ExecuteRequest):
-#     plan = load_plan_from_db(data.session_id)
+@router.post("/research/execute")
+async def execute_research(data: ExecuteRequest):
+    try:
+        research_response = research_app(data.plan)
 
-#     research_response = research_app(plan)
+        return {"message": research_response }
 
-#     return {"session_id": data.session_id, "message": research_response }
+    except ValueError as e:
+        return {"message": e }
+    except Exception as e:
+        {"message": e }
