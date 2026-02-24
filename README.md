@@ -14,8 +14,8 @@ https://github.com/user-attachments/assets/28438b64-61c9-40bc-8352-331991b694d7
 - **Backend**: [FastAPI](https://fastapi.tiangolo.com/) (Python)
 - **Vector Database**: [Pinecone](https://www.pinecone.io/)
 - **Database**: PostgreSQL
-- **Orchestration**: LangChain/LangGraph
-- **LLM**: meta-llama/Llama-3.1-8B-Instruct
-- **Model Hub**: Hugging Face
+- **Orchestration**: LangChain/LangGraph/Deep Agent
+- **LLM**: Meta Llama 3 and Llama 4 models
+- **Model Hub**: Hugging Face/Groq
 - **Infrastructure**: Docker & Docker Compose
 - **CI/CD**: GitHub Actions
