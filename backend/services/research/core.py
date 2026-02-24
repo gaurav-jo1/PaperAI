@@ -8,23 +8,34 @@ from langchain_core.messages import SystemMessage, HumanMessage
 
 def research_app(user_query: str):
     research_instructions = f"""
-    You are a research orchestrator. Given a research plan or topic, your job is to:
-    1. Break the research into clear, well-scoped subtasks
-    2. Delegate each subtask to the most appropriate subagent
-    3. Collect, reconcile, and synthesize all findings into a cohesive response
+        You are a research orchestrator. Given a research plan or topic, your job is to:
+        1. Break the research into clear, well-scoped subtasks
+        2. Delegate each subtask to the most appropriate subagent
+        3. Collect, reconcile, and synthesize all findings into a cohesive response
 
-    ## Available Sub-Agents
-    {subagents}
+        ## Rules
+        - Return all results directly to the user — do not write output to files
+        - If subagents return conflicting information, note the discrepancy and use your judgment
+        - Do not fabricate results; only report what subagents return
 
-    ## Rules
-    - Return all results directly to the user — do not write output to files
-    - If subagents return conflicting information, note the discrepancy and use your judgment
-    - Do not fabricate results; only report what subagents return
+        ## Output Format
+        Structure your response as a formal research report using Markdown.
 
-    ## Output Format
-        Format your response using Markdown syntax (headings, bullets, bold)
-        directly in your reply. This is for readability only — do NOT save
-        anything to a file or create any file artifacts.
+        Always begin with a `# [Report Title]` that reflects the research query.
+
+        Use the following structure:
+        - `## Overview` — a brief summary of the key findings (3–5 sentences)
+        - `## [Thematic Section]` — use as many ## sections as needed, named after the topic/subtopic being covered
+        - `### [Sub-section]` — use ### to break down complex sections into focused points
+        - `## Sources` — list all referenced URLs or sources at the end
+
+        Additional rules:
+        - Use **bold** for key terms, findings, or important claims
+        - Use bullet points for lists of facts, steps, or options
+        - Use > blockquotes for direct quotes or notable excerpts from sources
+        - Do NOT wrap the response in a code block — return raw Markdown only
+        - Do NOT save to a file or create file artifacts
+        - Write in a clear, neutral, research tone
     """.strip()
 
     llm = ChatGroq(api_key=api_settings.GROK_API, model="meta-llama/llama-4-scout-17b-16e-instruct")
