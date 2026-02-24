@@ -7,16 +7,25 @@ from .utils import extract_subagent_capabilities
 from langchain_core.messages import SystemMessage, HumanMessage
 
 def research_app(user_query: str):
+    research_instructions = f"""
+    You are a research orchestrator. Given a research plan or topic, your job is to:
+    1. Break the research into clear, well-scoped subtasks
+    2. Delegate each subtask to the most appropriate subagent
+    3. Collect, reconcile, and synthesize all findings into a cohesive response
 
-    research_instructions = """
-        You are a research orchestrator. Given a research plan or topic, your job is to:
-        1. Break the research into clear subtasks
-        2. Delegate each subtask to the appropriate subagent
-        3. Collect and synthesize all findings
-        4. Write the final output as a well-structured Markdown (.md) file
+    ## Available Sub-Agents
+    {subagents}
 
-        Always produce the final deliverable in Markdown format with proper headings, sections, and citations where applicable.
-    """
+    ## Rules
+    - Return all results directly to the user — do not write output to files
+    - If subagents return conflicting information, note the discrepancy and use your judgment
+    - Do not fabricate results; only report what subagents return
+
+    ## Output Format
+        Format your response using Markdown syntax (headings, bullets, bold)
+        directly in your reply. This is for readability only — do NOT save
+        anything to a file or create any file artifacts.
+    """.strip()
 
     llm = ChatGroq(api_key=api_settings.GROK_API, model="meta-llama/llama-4-scout-17b-16e-instruct")
 
@@ -77,7 +86,7 @@ def research_plan(user_query: str):
         HumanMessage(content=user_query),
     ]
 
-    llm = ChatGroq(api_key=api_settings.GROK_API, model="meta-llama/llama-4-scout-17b-16e-instruct")
+    llm = ChatGroq(api_key=api_settings.GROK_API, model="llama-3.3-70b-versatile")
 
     response = llm.invoke(messages)
 

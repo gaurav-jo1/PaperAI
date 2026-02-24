@@ -23,7 +23,7 @@ export default function ChatMessage({ role, content }: ChatMessageProps) {
         className={`rounded-2xl px-4 py-3 shadow-sm ${
           isUser
             ? "max-w-[75%] bg-linear-to-r from-cyan-500 to-blue-600 text-white rounded-tr-sm"
-            : "w-full bg-white border border-slate-100 text-slate-700 rounded-tl-sm"
+            : "w-full bg-white border border-slate-100 text-slate-700"
         }`}
       >
         {isUser ? (
