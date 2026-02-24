@@ -1,6 +1,6 @@
 # PaperAI
 
-PaperAI is a powerful multi-file RAG (Retrieval-Augmented Generation) system designed to provide intelligent answers based on your own collection of documents. It allows users to organize files into folders and selectively use them as a knowledge base for LLM-powered insights.
+PaperAI is a multi-agent deep research and RAG system that enables intelligent document querying and autonomous research execution. Users can upload multiple files and query them as a knowledge base using hybrid search, while the Deep Research mode deploys planner-executor agents to autonomously plan, decompose, and execute complex research tasks — purpose-built for financial analysis workflows.
 
 
 https://github.com/user-attachments/assets/aa6b23fe-7266-492c-a936-787833aca459
