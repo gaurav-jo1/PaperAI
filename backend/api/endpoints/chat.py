@@ -13,20 +13,6 @@ async def chat(data: ChatRequest):
     })
     return {"message": result["messages"]}
 
-@router.post("/research/plan", status_code=status.HTTP_201_CREATED)
-async def create_research_plan(data: ResearchRequest):
-    try:
-        plan = research_app(data.message)
-
-        return {
-            "message": plan
-        }
-
-    except ValueError as e:
-        print(f"Bad input: {e}")
-    except Exception as e:
-        print(f"Something went wrong: {e}")
-
 @router.post("/research/execute")
 async def execute_research(data: ExecuteRequest):
     try:
