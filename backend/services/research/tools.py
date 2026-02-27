@@ -1,33 +1,43 @@
 from tavily import TavilyClient
 from settings.settings import api_settings
-from typing import Literal
+from typing import Literal, Annotated
+from langchain_core.tools import tool, InjectedToolArg
+from pydantic import BaseModel, Field
 
 tavily_client = TavilyClient(api_settings.TAVILY_API_KEY)
 
+class SearchInput(BaseModel):
+    """Input for search queries."""
+    query: str = Field(..., description="User query for search")
+    topic: Literal["general", "news", "finance"] = Field(
+        default="general",
+        description="Type of topic user is querying about"
+    )
 
+@tool(args_schema=SearchInput)
 def internet_search(
     query: str,
     topic: Literal["general", "news", "finance"] = "general",
 ):
-    """
-    Search the internet for information using Tavily.
-
-    Use this when you need current, real-world information such as recent events,
-    facts, articles, or data that may not be in a static knowledge base.
+    """Run a real-time web search via Tavily.
 
     Args:
-    query: The search query. Be specific and descriptive for better results.
-           Example: "Python asyncio event loop best practices 2024"
+        query (str): Search query string — clear, specific and natural phrasing works best
+        max_results (int): Maximum number of results to return. Defaults to 5.
+        topic (Literal["general", "news", "finance"]):
+            Controls result ranking and filtering.
+            - "general" (default): broad web results
+            - "news": recent news articles
+            - "finance": financial data, stocks, company news
 
-    topic: Category of search.
-           - "general" for broad web search
-             Example: topic="general", query="how to center a div in CSS"
-           - "news" for recent news articles and events
-             Example: topic="news", query="Fed interest rate decision February 2025"
-           - "finance" for stock prices, earnings, market data
-             Example: topic="finance", query="NVIDIA Q4 2024 earnings per share"
+    Examples:
+        internet_search("current weather in Hawai",)
+        internet_search("latest budget 2026 India", topic="news")
+        internet_search("TSLA stock price right now", topic="finance")
     """
+
     return tavily_client.search(
-        query,
+        query=query,
         topic=topic,
+        include_raw_content=False,
     )

@@ -17,7 +17,8 @@ class Settings(BaseSettings):
     HUGGING_FACE_KEY: str
     ALLOWED_ORIGINS: List[str]
     TAVILY_API_KEY: str
-    GROK_API: str
+    GROK_API_1: str
+    GROK_API_2: str
 
 
 api_settings = Settings()

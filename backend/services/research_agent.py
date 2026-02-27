@@ -3,10 +3,9 @@ from .research import (
     tavily_client,
     web_search_subagent,
     subagents,
-    extract_tool_info,
     extract_subagent_capabilities,
     research_app,
-    research_plan,
+    WEB_SEARCH_INSTRUCTIONS
 )
 
 __all__ = [
@@ -14,8 +13,7 @@ __all__ = [
     "tavily_client",
     "web_search_subagent",
     "subagents",
-    "extract_tool_info",
     "extract_subagent_capabilities",
     "research_app",
-    "research_plan",
+    "WEB_SEARCH_INSTRUCTIONS"
 ]

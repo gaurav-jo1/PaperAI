@@ -1,7 +1,5 @@
 # PaperAI
 
-Agent test PaperAI
-
 Autonomous multi-agent financial research system that decomposes complex queries, does hybrid RAG on your PDFs, and executes deep research without you babysitting it.
 
 

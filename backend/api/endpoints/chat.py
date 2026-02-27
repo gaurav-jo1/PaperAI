@@ -1,7 +1,7 @@
 from fastapi import APIRouter, HTTPException, status
 from schemas.chat import ChatRequest, ResearchRequest, ExecuteRequest
 from services.chat_agent import agent_app
-from services.research_agent import research_plan, research_app
+from services.research_agent import research_app
 
 router = APIRouter()
 
@@ -16,7 +16,7 @@ async def chat(data: ChatRequest):
 @router.post("/research/plan", status_code=status.HTTP_201_CREATED)
 async def create_research_plan(data: ResearchRequest):
     try:
-        plan = research_plan(data.message)
+        plan = research_app(data.message)
 
         return {
             "message": plan

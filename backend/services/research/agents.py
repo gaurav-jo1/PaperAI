@@ -1,22 +1,31 @@
 from .tools import internet_search
 from datetime import date
+from .prompts import WEB_SEARCH_INSTRUCTIONS
+from langchain_groq import ChatGroq
+from settings.settings import api_settings
+from pydantic import BaseModel, Field
+from typing import Literal
 
+# web_search_subagent = {
+#     "name": "web-search-agent",
+#     "description": (
+#         "Specialized sub-agent for real-time web research. "
+#         "Use when the task requires current information, recent events, "
+#         "fact-checking, prices, news, statistics or data not available in model knowledge. "
+#         "Not suitable for math, code execution, document analysis or offline reasoning."
+#     ),
+#     "system_prompt": WEB_SEARCH_INSTRUCTIONS.format(date=date.today().strftime("%B %d, %Y")),
+#     "tools": [internet_search],
+# }
 
 web_search_subagent = {
-    "name": "web-search-agent",
-    "description": (
-        "Specialist agent for internet research using web search. "
-        "Delegate to this agent when the query requires gathering current information, "
-        "verifying facts, researching recent events, or pulling data from multiple web sources. "
-        "Not suitable for tasks that require document analysis or mathematical computation."
-    ),
-    "system_prompt": (
-        f"You are an expert web researcher. Your job is to search the internet and return accurate, relevant, and up to date information based on the query given to you.\n\n"
-        f"Today's date is {date.today().strftime('%B %d, %Y')}. "
-        "Use this to correctly interpret time-relative terms like 'today', 'recently', 'this week', or 'latest' when forming search queries."
+    "name": "web_search_agent",
+    "description": "specialized sub-agent for real-time web research.",
+    "system_prompt": ("You are a fast, accurate web research sub-agent. "
+        "Use your search tool(s) immediately when you need current or external information. "
+        "Follow tool schemas exactly — never change types or add extra fields. "
+        "Return concise, sourced answers. Do not hallucinate."
     ),
     "tools": [internet_search],
 }
-
-
 subagents = [web_search_subagent]
