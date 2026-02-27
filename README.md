@@ -1,6 +1,8 @@
 # PaperAI
 
-PaperAI is a multi-agent deep research and RAG system that enables intelligent document querying and autonomous research execution. Users can upload multiple files and query them as a knowledge base using hybrid search, while the Deep Research mode deploys planner-executor agents to autonomously plan, decompose, and execute complex research tasks — purpose-built for financial analysis workflows.
+Agent test PaperAI
+
+Autonomous multi-agent financial research system that decomposes complex queries, does hybrid RAG on your PDFs, and executes deep research without you babysitting it.
 
 
 https://github.com/user-attachments/assets/aa6b23fe-7266-492c-a936-787833aca459
