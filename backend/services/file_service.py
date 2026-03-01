@@ -115,20 +115,6 @@ async def insert_vector_db(documents, file_name, user_file):
     print(f"Successfully inserted {file_name[:10]} to Vector Database")
 
 
-async def parse_pdf_from_upload(file: UploadFile) -> list[Document]:
-    """Use PyMuPDFLoader with a temp file — no permanent disk saving."""
-    with tempfile.NamedTemporaryFile(delete=False, suffix=".pdf") as tmp_file:
-        tmp_path = tmp_file.name
-
-        try:
-            documents = await asyncio.to_thread(_sync_load_pdf, tmp_path)
-        finally:
-            if os.path.exists(tmp_path):
-                os.remove(tmp_path)
-
-        return documents
-
-
 async def process_file_upload(file: UploadFile):
     file_name = (file.filename.split(".")[0]).strip()
 
