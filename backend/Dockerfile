@@ -2,16 +2,16 @@ FROM python:3.12-slim
 
 ENV PYTHONUNBUFFERED=1
 ENV PORT=10000
-ENV WORKERS=4
+ENV WORKERS=1
 
 WORKDIR /app
 
 COPY requirements.txt .
 
-RUN pip install torch torchvision --index-url https://download.pytorch.org/whl/cpu
-RUN pip install docling --extra-index-url https://download.pytorch.org/whl/cpu
+RUN pip install --no-cache-dir torch torchvision --index-url https://download.pytorch.org/whl/cpu
+RUN pip install --no-cache-dir docling --extra-index-url https://download.pytorch.org/whl/cpu
 RUN pip install --no-cache-dir -r requirements.txt
-RUN pip install easyocr
+RUN pip install --no-cache-dir easyocr
 
 COPY . .
 
