@@ -6,9 +6,19 @@ from langchain_community.document_loaders import PyMuPDFLoader
 from fastapi import APIRouter, File, UploadFile, HTTPException
 import uuid
 from langchain_core.documents import Document
-from services.file_service import _embed_dense, _embed_sparse, _sync_upsert
+from services.file_service import (
+    _embed_dense,
+    _embed_sparse,
+    _sync_upsert,
+    _sync_split_texts,
+)
 import asyncio
 from settings.settings import api_settings
+from services.file_service import user_id
+from db.database import AsyncSessionLocal
+from sqlalchemy.exc import IntegrityError
+from db.user_files import UserFiles
+
 
 router = APIRouter()
 converter = DocumentConverter()
@@ -16,8 +26,6 @@ converter = DocumentConverter()
 
 @router.post("/")
 async def data_upload_file(file: UploadFile = File(...)):
-
-    # file_name = (file.filename.split(".")[0]).strip()
 
     with tempfile.NamedTemporaryFile(delete=False, suffix=".pdf") as tmp_file:
         tmp_path = tmp_file.name
@@ -33,7 +41,8 @@ async def data_upload_file(file: UploadFile = File(...)):
             if os.path.exists(tmp_path):
                 os.remove(tmp_path)
 
-async def parse_doc(file: UploadFile, file_name: str):
+
+async def parse_doc(file: UploadFile, file_name: str, file_id: str):
 
     if not file.filename.endswith(".pdf"):
         raise HTTPException(status_code=400, detail="Only PDF files are supported.")
@@ -48,64 +57,65 @@ async def parse_doc(file: UploadFile, file_name: str):
         result = converter.convert(tmp_path)
         doc = result.document
 
-        file_id = str(uuid.uuid4())
+        pages_len = len(doc.pages)
 
         nodes = []
-        tables_for_postgres = []
 
+        # Text
         for text_elem in doc.texts or []:
-            node = Document(
-                page_content=text_elem.text,
-                metadata={
-                    "element_type": "text",
-                    "node_id": str(uuid.uuid4()),
-                    "doc_id": file_id,
-                    "file_name": file_name,
-                }
-            )
+            all_split = _sync_split_texts(text_elem.text)
 
-            nodes.append(node)
+            for chunk_text in all_split:
+                node = Document(
+                    id=str(uuid.uuid4()),
+                    page_content=chunk_text,
+                    metadata={
+                        "element_type": "text",
+                        "node_id": str(uuid.uuid4()),
+                        "file_id": file_id,
+                        "file_name": file_name,
+                        "user_id": user_id,
+                    },
+                )
 
+                nodes.append(node)
 
+        # Table
         for table_elem in doc.tables or []:
             markdown_table = table_elem.export_to_dataframe(doc=doc)
-            df = table_elem.export_to_dataframe(doc=doc)
 
             table_id = str(uuid.uuid4())
 
             node = Document(
+                id=str(uuid.uuid4()),
                 page_content=f"{markdown_table}",
                 metadata={
                     "element_type": "table",
                     "table_id": table_id,
-                    "doc_id": file_id,
+                    "file_id": file_id,
                     "table_type": "unknown",  # optional: LLM-tag later
                     "node_id": str(uuid.uuid4()),
-                    "file_name": file_name
-                }
+                    "file_name": file_name,
+                    "user_id": user_id,
+                },
             )
 
             nodes.append(node)
 
-            tables_for_postgres.append({
-                "table_id": table_id,
-                "markdown": markdown_table,
-                "dataframe_json": df.to_json(orient="records"),  # or df.to_dict()
-            })
-
-        return nodes, tables_for_postgres
+        return nodes, pages_len
 
     except Exception as e:
-            raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail=str(e))
 
     finally:
         os.unlink(tmp_path)
+
 
 async def insert_pinecone(nodes, file_name):
     BATCH_SIZE = 50
 
     for i in range(0, len(nodes), BATCH_SIZE):
-        batch_chunks = nodes[i: i + BATCH_SIZE]
+        batch_chunks = nodes[i : i + BATCH_SIZE]
         batch_texts = [chunk.page_content for chunk in batch_chunks]
 
         dense_embeddings, sparse_embeddings = await asyncio.gather(
@@ -124,10 +134,7 @@ async def insert_pinecone(nodes, file_name):
                         "indices": sparse_embeddings[j]["sparse_indices"],
                         "values": sparse_embeddings[j]["sparse_values"],
                     },
-                    "metadata": {
-                        **chunk.metadata,
-                        "text": chunk.page_content
-                    },
+                    "metadata": {**chunk.metadata, "text": chunk.page_content},
                 }
             )
 
@@ -136,44 +143,49 @@ async def insert_pinecone(nodes, file_name):
     print(f"{file_name} inserted to Pinecone Successfully")
 
 
-async def insert_postgres():
-    pass
+async def insert_postgres(db, user_file, file_name):
+    try:
+        db.add(user_file)
+        await db.commit()
+        print(f"Successfully inserted {file_name} to database")
+
+    except IntegrityError:
+        await db.rollback()
+        print(f"{file_name} - File already exists (duplicate key)")
+    except Exception as e:
+        await db.rollback()
+        print(f"ERROR inserting {file_name}: {type(e).__name__}: {e}")
+        raise
+
 
 async def process_file(file: UploadFile):
-    file_name = (file.filename.split(".")[0]).strip()
+    async with AsyncSessionLocal() as db:
+        file_name, file_id = (file.filename.split(".")[0]).strip(), str(uuid.uuid4())
 
-    # 1. Parse the Document
-    nodes, tables = await parse_doc(file, file_name)
+        # 1. Parse the Document
+        nodes, pages_len = await parse_doc(file, file_name, file_id)
 
-    # 2. Upload to Pinecone
-    await insert_pinecone(nodes, file_name)
+        user_file = UserFiles(
+            file_name=file_name,
+            user_id=user_id,
+            number_of_pages=pages_len,
+            file_id=file_id,
+        )
 
-    # 3. Upload to Postgres
-    # await insert_postgres(tables)
+        # 2. Upload to Pinecone
+        await insert_pinecone(nodes, file_name)
 
-    # 4. Upload to GraphDB
+        # 3. Upload to Postgres
+        await insert_postgres(db, user_file, file_name)
+
+        return nodes
+        # 4. Upload to GraphDB
+
 
 @router.post("/new")
 async def data_upload_file_new(files: list[UploadFile] = File(...)):
 
     for file in files:
-        await process_file(file)
+        nodes = await process_file(file)
 
-    return "File Uploaded Succesfully"
-
-
-        # return {"text": [text.text for text in doc.texts] if doc.texts else "",
-        #         "table": [table.export_to_dataframe(doc=doc)
-        #          for table in doc.tables] if doc.tables else []}
-
-        # return JSONResponse(content={
-        #     "filename": file.filename,
-        #     "markdown": doc.export_to_markdown(),       # Full markdown text
-        #     "num_pages": len(doc.pages),
-        #     "tables": [
-        #         table.export_to_dataframe().to_dict()   # Tables as dicts
-        #         for table in doc.tables
-        #     ] if doc.tables else [],
-        # }, status_code=status.HTTP_200_OK)
-
-
+    return nodes

@@ -6,7 +6,7 @@ from pathlib import Path
 
 from fastapi import UploadFile
 from langchain_community.document_loaders import PyMuPDFLoader
-from langchain_core.documents import Document
+# from langchain_core.documents import Document
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -54,6 +54,16 @@ def _sync_split_documents(documents):
         add_start_index=True,
     )
     return text_splitter.split_documents(documents)
+
+
+def _sync_split_texts(texts):
+    """Split texts into chunks (CPU-BOUND)"""
+    text_splitter = RecursiveCharacterTextSplitter(
+        chunk_size=1000,
+        chunk_overlap=200,
+        add_start_index=True,
+    )
+    return text_splitter.split_text(texts)
 
 
 async def insert_postgres_db(file_name, user_file, db: AsyncSession):

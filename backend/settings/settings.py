@@ -14,7 +14,7 @@ class Settings(BaseSettings):
     PINECONE_INDEX_HOST: str
     PINECONE_NAMESPACE: str
     GEMINI_API_KEY: str
-    HUGGING_FACE_KEY: str
+    HF_TOKEN: str
     ALLOWED_ORIGINS: List[str]
     TAVILY_API_KEY: str
     GROK_API_1: str
