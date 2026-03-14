@@ -81,14 +81,15 @@ async def insert_postgres_db(file_name, user_file, db: AsyncSession):
         raise
 
 
-async def insert_vector_db(documents, file_name, user_file):
-    all_splits = await asyncio.to_thread(_sync_split_texts, documents)
+async def insert_vector_db(file_name, user_file):
+    all_splits = await asyncio.to_thread(_sync_split_texts, user_file.markdown_content)
 
     BATCH_SIZE = 50
 
     for i in range(0, len(all_splits), BATCH_SIZE):
         batch_chunks = all_splits[i : i + BATCH_SIZE]
-        batch_texts = [chunk.page_content for chunk in batch_chunks]
+
+        batch_texts = [chunk for chunk in batch_chunks]
 
         dense_embeddings, sparse_embeddings = await asyncio.gather(
             asyncio.to_thread(_embed_dense, batch_texts),
@@ -105,9 +106,15 @@ async def insert_vector_db(documents, file_name, user_file):
                         "indices": sparse_embeddings[j]["sparse_indices"],
                         "values": sparse_embeddings[j]["sparse_values"],
                     },
-                    "metadata": {**chunk.metadata, "text": chunk.page_content},
+                    "metadata": {
+                        "text": chunk,
+                        "file_name": file_name,
+                        "file_id": str(user_file.file_id),
+                        "user_id": str(user_file.user_id),
+                    },
                 }
             )
+
 
         await asyncio.to_thread(
             _sync_upsert,
@@ -135,6 +142,7 @@ async def process_file_upload(file: UploadFile):
             user_file = UserFiles(
                 file_name=file_name,
                 user_id=user_id,
+                file_id=uuid.uuid4(),
                 number_of_pages=len(documents.pages),
                 token_count=token_len,
                 markdown_content=document_markdown
@@ -142,7 +150,7 @@ async def process_file_upload(file: UploadFile):
 
             await asyncio.gather(
                 insert_postgres_db(file_name, user_file, db),
-                # insert_vector_db(document_markdown, file_name, user_file),
+                insert_vector_db(file_name, user_file),
             )
 
         finally:
