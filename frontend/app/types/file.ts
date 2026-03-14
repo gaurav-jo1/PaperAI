@@ -5,6 +5,7 @@ export interface FileItem {
     user_id: string;
     id: string;
     created_at: string;
+    token_count: number;
 }
 
 export type SortOrder = "newest" | "oldest";

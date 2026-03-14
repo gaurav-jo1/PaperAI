@@ -32,7 +32,16 @@ export default function ChatPage() {
     fetchFiles();
   }, []);
 
+  const handleToggleDeepResearch = () => {
+    const newValue = !isDeepResearch;
+    setIsDeepResearch(newValue);
+    if (newValue) {
+      setSelectedDocIds(new Set());
+    }
+  };
+
   const toggleSelectAll = () => {
+    if (isDeepResearch) return; // Block selection when Deep Research is enabled
     if (selectedDocIds.size === files.length) {
       setSelectedDocIds(new Set());
     } else {
@@ -41,6 +50,7 @@ export default function ChatPage() {
   };
 
   const toggleSelectDoc = (id: string) => {
+    if (isDeepResearch) return; // Block selection when Deep Research is enabled
     const newSelected = new Set(selectedDocIds);
     if (newSelected.has(id)) {
       newSelected.delete(id);
@@ -196,7 +206,7 @@ export default function ChatPage() {
           isLoading={isLoading}
           selectedDocIds={selectedDocIds}
           isDeepResearch={isDeepResearch}
-          onToggleDeepResearch={() => setIsDeepResearch(!isDeepResearch)}
+          onToggleDeepResearch={handleToggleDeepResearch}
         />
       </main>
     </div>
