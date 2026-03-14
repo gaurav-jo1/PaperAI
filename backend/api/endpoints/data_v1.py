@@ -14,6 +14,7 @@ router = APIRouter()
 
 MAX_CONCURRENT = 5
 
+
 @router.post("/upload", status_code=status.HTTP_201_CREATED)
 async def upload_data_new(files: list[UploadFile] = File(...)):
     if not files:

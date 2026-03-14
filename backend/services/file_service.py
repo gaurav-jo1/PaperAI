@@ -23,6 +23,7 @@ enc = tiktoken.get_encoding("cl100k_base")
 def count_tokens(text: str) -> int:
     return len(enc.encode(text))
 
+
 def _sync_upsert(records, namespace):
     """Upload to Pinecone (BLOCKING I/O)"""
     index.upsert(vectors=records, namespace=namespace)
@@ -48,6 +49,7 @@ def _sync_load_pdf(path):
     """Load PDF and extract pages (BLOCKING I/O)"""
     return converter.convert(path)
 
+
 def _sync_split_documents(documents):
     """Split documents into chunks (CPU-BOUND)"""
     text_splitter = RecursiveCharacterTextSplitter(
@@ -56,6 +58,7 @@ def _sync_split_documents(documents):
         add_start_index=True,
     )
     return text_splitter.split_documents(documents)
+
 
 def _sync_split_texts(texts):
     """Split texts into chunks (CPU-BOUND)"""
@@ -115,7 +118,6 @@ async def insert_vector_db(file_name, user_file):
                 }
             )
 
-
         await asyncio.to_thread(
             _sync_upsert,
             records,
@@ -145,7 +147,7 @@ async def process_file_upload(file: UploadFile):
                 file_id=uuid.uuid4(),
                 number_of_pages=len(documents.pages),
                 token_count=token_len,
-                markdown_content=document_markdown
+                markdown_content=document_markdown,
             )
 
             await asyncio.gather(

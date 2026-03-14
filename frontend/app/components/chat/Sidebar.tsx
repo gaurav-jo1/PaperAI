@@ -21,6 +21,7 @@ interface SidebarProps {
   onToggleSelectDoc: (id: string) => void;
   onToggleSelectAll: () => void;
   onRefreshFiles: () => void;
+  tokenLimit: number
 }
 
 export default function Sidebar({
@@ -30,6 +31,7 @@ export default function Sidebar({
   onToggleSelectDoc,
   onToggleSelectAll,
   onRefreshFiles,
+  tokenLimit,
 }: SidebarProps) {
   const [isOpen, setIsOpen] = useState(true);
   const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
@@ -41,7 +43,6 @@ export default function Sidebar({
   const totalTokens = files
     .filter((f) => selectedDocIds.has(f.file_id))
     .reduce((acc, curr) => acc + (curr.token_count || 0), 0);
-  const tokenLimit = 100000;
   const tokenPercentage = (totalTokens / tokenLimit) * 100;
 
   const toggleSidebar = () => {

@@ -5,13 +5,18 @@ from services.research_agent import research_app
 
 router = APIRouter()
 
+
 @router.post("/")
 async def chat(data: ChatRequest):
-    result = agent_app.invoke({
-        "messages": data.message,
-        "knowledge_files": data.knowledge_files,
-    })
+    result = await agent_app.ainvoke(
+        {
+            "messages": data.message,
+            "knowledge_files": data.knowledge_files,
+            "semantic_search_enabled": data.semantic_search_enabled,
+        }
+    )
     return {"message": result["messages"]}
+
 
 @router.post("/research/execute")
 async def execute_research(data: ExecuteRequest):

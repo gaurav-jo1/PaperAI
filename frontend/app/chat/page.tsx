@@ -176,7 +176,7 @@ export default function ChatPage() {
   const totalTokens = files
     .filter((f) => selectedDocIds.has(f.file_id))
     .reduce((acc, curr) => acc + (curr.token_count || 0), 0);
-  const tokenLimit = 50000;
+  const tokenLimit = 100000;
   const isOverTokenLimit = totalTokens > tokenLimit;
 
   return (
@@ -189,6 +189,7 @@ export default function ChatPage() {
         onToggleSelectDoc={toggleSelectDoc}
         onToggleSelectAll={toggleSelectAll}
         onRefreshFiles={fetchFiles}
+        tokenLimit={tokenLimit}
       />
 
       {/* Main Content Area */}
