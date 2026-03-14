@@ -10,6 +10,7 @@ interface ChatInputProps {
   selectedDocIds: Set<string>;
   isDeepResearch: boolean;
   onToggleDeepResearch: () => void;
+  isOverTokenLimit?: boolean;
 }
 
 export default function ChatInput({
@@ -18,12 +19,13 @@ export default function ChatInput({
   selectedDocIds,
   isDeepResearch,
   onToggleDeepResearch,
+  isOverTokenLimit = false,
 }: ChatInputProps) {
   const [input, setInput] = useState("");
 
   const handleSubmit = () => {
     const trimmed = input.trim();
-    if (!trimmed || isLoading) return;
+    if (!trimmed || isLoading || isOverTokenLimit) return;
     onSend(trimmed);
     setInput("");
   };
@@ -62,11 +64,13 @@ export default function ChatInput({
                 onChange={(e) => setInput(e.target.value)}
                 onKeyDown={handleKeyDown}
                 placeholder={
-                  isDeepResearch
-                    ? "Ask me anything for deep research..."
-                    : "Ask me anything..."
+                  isOverTokenLimit
+                    ? "Token limit exceeded. Please deselect some files."
+                    : isDeepResearch
+                      ? "Ask me anything for deep research..."
+                      : "Ask me anything..."
                 }
-                disabled={isLoading}
+                disabled={isLoading || isOverTokenLimit}
                 className="w-full py-3 pl-6 pr-4 text-sm bg-transparent border-none outline-none focus:outline-none focus:ring-0 text-slate-800 placeholder:text-slate-400 disabled:opacity-50"
               />
             </div>
@@ -135,7 +139,7 @@ export default function ChatInput({
 
                 <button
                   onClick={handleSubmit}
-                  disabled={isLoading || !input.trim()}
+                  disabled={isLoading || !input.trim() || isOverTokenLimit}
                   className={`p-2 text-white rounded-full hover:opacity-90 transition-all shadow-sm cursor-pointer z-10 disabled:opacity-50 disabled:cursor-not-allowed ${
                     isDeepResearch
                       ? "bg-linear-to-r from-indigo-500 to-purple-600 shadow-indigo-200"
