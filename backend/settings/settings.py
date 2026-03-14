@@ -19,6 +19,7 @@ class Settings(BaseSettings):
     TAVILY_API_KEY: str
     GROK_API_1: str
     GROK_API_2: str
+    DOCLING_ALLOW_EXTERNAL_PLUGINS: bool = True
 
 
 api_settings = Settings()

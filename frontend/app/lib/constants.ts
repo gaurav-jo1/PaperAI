@@ -1,8 +1,8 @@
 export const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || "http://127.0.0.1:8000";
 
 export const API_ENDPOINTS = {
-    FILES: `${API_BASE_URL}/data/files`,
-    UPLOAD: `${API_BASE_URL}/data/upload`,
+    FILES: `${API_BASE_URL}/v1/data/files`,
+    UPLOAD: `${API_BASE_URL}/v1/data/upload`,
     CHAT: `${API_BASE_URL}/chat/`,
     RESEARCH_PLAN: `${API_BASE_URL}/chat/research/plan/`,
     RESEARCH_EXECUTE: `${API_BASE_URL}/chat/research/execute/`,
