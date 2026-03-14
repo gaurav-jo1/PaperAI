@@ -10,6 +10,8 @@ interface ChatInputProps {
   selectedDocIds: Set<string>;
   isDeepResearch: boolean;
   onToggleDeepResearch: () => void;
+  isKnowledgeSearch: boolean;
+  onToggleKnowledgeSearch: () => void;
   isOverTokenLimit?: boolean;
 }
 
@@ -19,6 +21,8 @@ export default function ChatInput({
   selectedDocIds,
   isDeepResearch,
   onToggleDeepResearch,
+  isKnowledgeSearch,
+  onToggleKnowledgeSearch,
   isOverTokenLimit = false,
 }: ChatInputProps) {
   const [input, setInput] = useState("");
@@ -77,40 +81,76 @@ export default function ChatInput({
 
             {/* Bottom Actions Row */}
             <div className="flex items-center justify-between px-4 pt-1">
-              {/* Bottom Left: Toggle */}
-              <label className="flex items-center space-x-2 cursor-pointer group pl-2">
-                <span
-                  className={`text-[13px] font-semibold tracking-wide select-none transition-colors duration-300 ${
-                    isDeepResearch
-                      ? "text-indigo-600"
-                      : "text-slate-400 group-hover:text-slate-600"
-                  }`}
-                >
-                  Deep Research
-                </span>
-                <div className="relative flex items-center shrink-0">
-                  <input
-                    type="checkbox"
-                    className="sr-only"
-                    checked={isDeepResearch}
-                    onChange={onToggleDeepResearch}
-                  />
-                  <div
-                    className={`block w-8 rounded-full transition-colors duration-300 ease-in-out ${
+              {/* Bottom Left: Toggles */}
+              <div className="flex items-center space-x-6 pl-2">
+                <label className="flex items-center space-x-2 cursor-pointer group">
+                  <span
+                    className={`text-[13px] font-semibold tracking-wide select-none transition-colors duration-300 ${
                       isDeepResearch
-                        ? "bg-indigo-500"
-                        : "bg-slate-200 group-hover:bg-slate-300"
+                        ? "text-indigo-600"
+                        : "text-slate-400 group-hover:text-slate-600"
                     }`}
-                    style={{ height: "18px" }}
-                  ></div>
-                  <div
-                    className={`absolute left-[2px] bg-white rounded-full transition-transform duration-300 ease-in-out shadow-sm ${
-                      isDeepResearch ? "translate-x-[14px]" : "translate-x-0"
+                  >
+                    Deep Research
+                  </span>
+                  <div className="relative flex items-center shrink-0">
+                    <input
+                      type="checkbox"
+                      className="sr-only"
+                      checked={isDeepResearch}
+                      onChange={onToggleDeepResearch}
+                    />
+                    <div
+                      className={`block w-8 rounded-full transition-colors duration-300 ease-in-out ${
+                        isDeepResearch
+                          ? "bg-indigo-500"
+                          : "bg-slate-200 group-hover:bg-slate-300"
+                      }`}
+                      style={{ height: "18px" }}
+                    ></div>
+                    <div
+                      className={`absolute left-[2px] bg-white rounded-full transition-transform duration-300 ease-in-out shadow-sm ${
+                        isDeepResearch ? "translate-x-[14px]" : "translate-x-0"
+                      }`}
+                      style={{ height: "14px", width: "14px" }}
+                    ></div>
+                  </div>
+                </label>
+
+                <label className="flex items-center space-x-2 cursor-pointer group">
+                  <span
+                    className={`text-[13px] font-semibold tracking-wide select-none transition-colors duration-300 ${
+                      isKnowledgeSearch
+                        ? "text-cyan-600"
+                        : "text-slate-400 group-hover:text-slate-600"
                     }`}
-                    style={{ height: "14px", width: "14px" }}
-                  ></div>
-                </div>
-              </label>
+                  >
+                    Knowledge Search
+                  </span>
+                  <div className="relative flex items-center shrink-0">
+                    <input
+                      type="checkbox"
+                      className="sr-only"
+                      checked={isKnowledgeSearch}
+                      onChange={onToggleKnowledgeSearch}
+                    />
+                    <div
+                      className={`block w-8 rounded-full transition-colors duration-300 ease-in-out ${
+                        isKnowledgeSearch
+                          ? "bg-cyan-500"
+                          : "bg-slate-200 group-hover:bg-slate-300"
+                      }`}
+                      style={{ height: "18px" }}
+                    ></div>
+                    <div
+                      className={`absolute left-[2px] bg-white rounded-full transition-transform duration-300 ease-in-out shadow-sm ${
+                        isKnowledgeSearch ? "translate-x-[14px]" : "translate-x-0"
+                      }`}
+                      style={{ height: "14px", width: "14px" }}
+                    ></div>
+                  </div>
+                </label>
+              </div>
 
               {/* Bottom Right: Selection Badge & Send Button */}
               <div className="flex items-center gap-2">

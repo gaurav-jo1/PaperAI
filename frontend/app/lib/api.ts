@@ -27,6 +27,7 @@ export const fileApi = {
 export interface ChatPayload {
     message: string;
     knowledge_files: string[];
+    semantic_search_enabled: boolean;
 }
 
 export interface ResearchPayload {

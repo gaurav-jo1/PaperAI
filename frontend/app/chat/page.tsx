@@ -15,6 +15,7 @@ export default function ChatPage() {
   const [messages, setMessages] = useState<Message[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [isDeepResearch, setIsDeepResearch] = useState(false);
+  const [isKnowledgeSearch, setIsKnowledgeSearch] = useState(false);
   const [loadingText, setLoadingText] = useState<string | undefined>();
 
   const fetchFiles = async () => {
@@ -37,6 +38,15 @@ export default function ChatPage() {
     setIsDeepResearch(newValue);
     if (newValue) {
       setSelectedDocIds(new Set());
+      setIsKnowledgeSearch(false);
+    }
+  };
+
+  const handleToggleKnowledgeSearch = () => {
+    const newValue = !isKnowledgeSearch;
+    setIsKnowledgeSearch(newValue);
+    if (newValue) {
+      setIsDeepResearch(false);
     }
   };
 
@@ -80,6 +90,7 @@ export default function ChatPage() {
         response = await researchApi.getResearchPlan({
           message,
           knowledge_files: Array.from(selectedDocIds),
+          semantic_search_enabled: false,
         });
 
         const planContent =
@@ -98,6 +109,7 @@ export default function ChatPage() {
         response = await chatApi.sendMessage({
           message,
           knowledge_files: Array.from(selectedDocIds),
+          semantic_search_enabled: isKnowledgeSearch,
         });
 
         setMessages((prev) => [
@@ -214,6 +226,8 @@ export default function ChatPage() {
           selectedDocIds={selectedDocIds}
           isDeepResearch={isDeepResearch}
           onToggleDeepResearch={handleToggleDeepResearch}
+          isKnowledgeSearch={isKnowledgeSearch}
+          onToggleKnowledgeSearch={handleToggleKnowledgeSearch}
           isOverTokenLimit={isOverTokenLimit}
         />
       </main>

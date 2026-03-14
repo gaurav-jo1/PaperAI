@@ -16,20 +16,29 @@ class AgentState(TypedDict):
 
 
 SYSTEM_PROMPT = """
-        You are an AI assistant designed to answer user questions using only the provided context retrieved from a vector database or complete documents.
+        You are an AI assistant designed to answer user questions using the provided context retrieved from a vector database or complete documents.
 
         Core Responsibilities:
         - Carefully read and understand the provided context before answering.
         - The context may come from multiple documents. Combine information logically when needed.
         - If multiple documents provide conflicting information, mention the uncertainty.
-        - If the answer is not present in the context, say:
-        "I could not find this information in the provided documents."
+
+        Knowledge Source Rules (CRITICAL):
+        - If the answer IS found in the provided context:
+        → Answer directly using the context. No special label needed.
+
+        - If the answer is NOT found in the provided context BUT you have relevant knowledge from your training data:
+        → First, explicitly state: "⚠️ The provided documents do not contain information about this. The following answer is based on my general training knowledge, not your uploaded data."
+        → Then provide the answer from your training knowledge.
+
+        - If the answer is NOT found in the provided context AND you have no reliable training knowledge:
+        → Clearly state: "❌ No provided data has an answer for this question, and I don't have sufficient knowledge to answer it reliably."
 
         Strict Rules:
         - Do NOT make up information.
-        - Do NOT use outside knowledge unless explicitly allowed.
         - Do NOT assume missing details.
-        - Stay grounded in the provided context.
+        - Always be transparent about where your answer is coming from (provided context vs. general training knowledge).
+        - Never silently mix context-grounded answers with training knowledge — always label the source when using training knowledge.
 
         Markdown Response Requirements:
         - ALWAYS generate responses in valid Markdown format.
@@ -48,35 +57,40 @@ SYSTEM_PROMPT = """
         - If relevant, reference document sections (if metadata is available).
 
         If Context is Empty or Irrelevant:
-        - Politely ask the user to rephrase or provide more details.
+        - Politely inform the user that no relevant context was retrieved and ask them to rephrase or re-upload relevant documents.
 
         Goal:
-        Provide accurate, context-grounded answers that help the user understand the information from their uploaded documents, formatted clearly using Markdown.
+        Provide accurate, transparent answers that clearly distinguish between information from the user's uploaded documents and general training knowledge, formatted cleanly using Markdown.
 """
 
 
-def retrieve_context(state: AgentState):
-    knowledge_files = state.get("knowledge_files", [])
-    user_query = state["messages"]
+def _build_messages(user_query: str, context_blocks: list[str]) -> list[dict]:
+    final_context = "\n\n".join(context_blocks)
+    user_message = f"""
+        CONTEXT:{final_context}
 
-    if not knowledge_files:
-        return {"messages": user_query}
+        QUESTION: {user_query}
+    """
+    return [
+        {"role": "system", "content": SYSTEM_PROMPT},
+        {"role": "user", "content": user_message},
+    ]
 
-    top_k = len(knowledge_files) * 20
 
-    dense_query_embedding = pc.inference.embed(
+def _pinecone_search(user_query: str, top_k: int = 10) -> list[str]:
+    """Runs a hybrid Pinecone search and returns formatted context blocks."""
+    dense = pc.inference.embed(
         model="llama-text-embed-v2",
         inputs=user_query,
         parameters={"input_type": "query", "truncate": "END"},
     )
-
-    sparse_query_embedding = pc.inference.embed(
+    sparse = pc.inference.embed(
         model="pinecone-sparse-english-v0",
         inputs=user_query,
         parameters={"input_type": "query", "truncate": "END"},
     )
 
-    for d, s in zip(dense_query_embedding, sparse_query_embedding):
+    for d, s in zip(dense, sparse):
         query_response = index.query(
             namespace=api_settings.PINECONE_NAMESPACE,
             top_k=top_k,
@@ -87,93 +101,86 @@ def retrieve_context(state: AgentState):
             },
             include_values=False,
             include_metadata=True,
-            filter={"file_id": {"$in": knowledge_files}},
         )
 
-    matches = query_response["matches"]
-
-    context_blocks = [
-        f"[Source: {match['metadata']['file_name']}]\n{match['metadata']['text']}"
-        for match in matches
+    return [
+        f"[Source: {m['metadata']['file_name']}]\n{m['metadata']['text']}"
+        for m in query_response["matches"]
     ]
 
-    final_context = "\n\n".join(context_blocks)
 
-    user_message = f"""
-        CONTEXT:{final_context}
-
-        QUESTION: {user_query}
-    """
-
-    messages = [
-        {"role": "system", "content": SYSTEM_PROMPT},
-        {"role": "user", "content": user_message},
-    ]
-
-    return {"messages": messages}
-
-
-async def get_full_context(state: AgentState):
-    knowledge_files = state.get("knowledge_files", [])
-    user_query = state["messages"]
-
-    if not knowledge_files:
-        return {"messages": user_query}
-
+async def _fetch_full_context(knowledge_files: list[str]) -> list[str]:
+    """Fetches full markdown content for the given file IDs from the DB."""
     file_uuids = [uuid.UUID(f) for f in knowledge_files]
-
     async with AsyncSessionLocal() as db:
         stmt = select(UserFiles).where(UserFiles.file_id.in_(file_uuids))
         result = await db.execute(stmt)
         user_files = result.scalars().all()
 
-        context_blocks = [
-            f"[Source: {user_file.file_name}]\n{user_file.markdown_content}"
-            for user_file in user_files if user_file.markdown_content
-        ]
-
-    final_context = "\n\n".join(context_blocks)
-
-    user_message = f"""
-        CONTEXT:{final_context}
-
-        QUESTION: {user_query}
-    """
-
-    messages = [
-        {"role": "system", "content": SYSTEM_PROMPT},
-        {"role": "user", "content": user_message},
+    return [
+        f"[Source: {uf.file_name}]\n{uf.markdown_content}"
+        for uf in user_files
+        if uf.markdown_content
     ]
 
-    return {"messages": messages}
+
+# ── Graph nodes ──────────────────────────────────────────────────────────────
+
+
+def retrieve_context(state: AgentState):
+    user_query = state["messages"]
+    blocks = _pinecone_search(user_query)
+    return {"messages": _build_messages(user_query, blocks)}
+
+
+async def get_full_context(state: AgentState):
+    knowledge_files = state.get("knowledge_files", [])
+    user_query = state["messages"]
+    blocks = await _fetch_full_context(knowledge_files)
+    return {"messages": _build_messages(user_query, blocks)}
+
+
+async def get_full_context_with_retrieval(state: AgentState):
+    """Combined: full document content + semantic highlights."""
+    knowledge_files = state.get("knowledge_files", [])
+    user_query = state["messages"]
+    full_blocks = await _fetch_full_context(knowledge_files)
+    semantic_blocks = _pinecone_search(user_query)
+    return {"messages": _build_messages(user_query, full_blocks + semantic_blocks)}
 
 
 def route_query(state: AgentState):
-    if not state.get("knowledge_files"):
-        return "generate"
+    has_files = bool(state.get("knowledge_files"))
+    semantic = state.get("semantic_search_enabled", False)
 
-    if state.get("semantic_search_enabled"):
+    if semantic and has_files:
+        return "get_full_context_with_retrieval"
+    elif not semantic and has_files:
+        return "get_full_context"
+    elif not has_files and semantic:
         return "retrieve"
     else:
-        return "get_full_context"
+        return "generate"
 
 
 def call_model(state: AgentState):
     messages = state["messages"]
     print(messages)
 
-    files = state.get("knowledge_files", [])
-
     if isinstance(messages, str):
-        messages = [{"role": "user", "content": messages}]
+        messages = [
+            {"role": "system", "content": SYSTEM_PROMPT},
+            {"role": "user", "content": messages},
+        ]
 
-    if files:
-        # meta-llama/Llama-4-Scout-17B-16E-Instruct for 10M Tokens
-        # meta-llama/Llama-4-Maverick-17B-128E-Instruct for 1M Tokens
-
-        model = "meta-llama/Llama-3.3-70B-Instruct"
-    else:
-        model = "meta-llama/Llama-3.1-8B-Instruct"
+    # Case 1 (no knowledge files) → lightweight 8B model
+    # All other cases (retrieve / get_full_context / combined) → 70B model
+    has_files = bool(state.get("knowledge_files"))
+    model = (
+        "meta-llama/Llama-3.3-70B-Instruct"
+        if has_files
+        else "meta-llama/Llama-3.1-8B-Instruct"
+    )
 
     completion = client.chat.completions.create(
         model=model,
@@ -188,11 +195,25 @@ def call_model(state: AgentState):
 workflow = StateGraph(AgentState)
 workflow.add_node("retrieve", retrieve_context)
 workflow.add_node("get_full_context", get_full_context)
+workflow.add_node("get_full_context_with_retrieval", get_full_context_with_retrieval)
 workflow.add_node("generate", call_model)
 
-workflow.add_conditional_edges(START, route_query)
-workflow.add_edge("retrieve", "generate")
-workflow.add_edge("get_full_context", "generate")
+workflow.add_conditional_edges(
+    START,
+    route_query,
+    {
+        "retrieve": "retrieve",  # Semantic search only
+        "generate": "generate",  # No files, no semantic search
+        "get_full_context": "get_full_context",  # Files only
+        "get_full_context_with_retrieval": "get_full_context_with_retrieval",  # Files + semantic search
+    },
+)
+
+workflow.add_edge("retrieve", "generate")  # Semantic search only
+workflow.add_edge("get_full_context", "generate")  # Files only
+workflow.add_edge(
+    "get_full_context_with_retrieval", "generate"
+)  # Files + semantic search
 workflow.add_edge("generate", END)
 
 agent_app = workflow.compile()
