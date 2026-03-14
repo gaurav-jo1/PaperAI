@@ -10,6 +10,7 @@ class UserFiles(BaseModel):
     file_id: UUID
     number_of_pages: int
     created_at: datetime
+    token_count: int
 
     class Config:
         populate_by_name = True

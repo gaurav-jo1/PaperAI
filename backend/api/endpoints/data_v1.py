@@ -26,9 +26,9 @@ async def upload_data_new(files: list[UploadFile] = File(...)):
             return await process_file_upload(file)
 
     try:
-        await asyncio.gather(*(process_with_semaphore(file) for file in files))
+        data = await asyncio.gather(*(process_with_semaphore(file) for file in files))
 
-        return {"message": "Files uploaded successfully"}
+        return {"message": "Files uploaded successfully", "data": data}
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Upload failed: {str(e)}")
 

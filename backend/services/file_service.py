@@ -2,11 +2,10 @@ import asyncio
 import os
 import tempfile
 import uuid
+import tiktoken
 from pathlib import Path
-
 from fastapi import UploadFile
-from langchain_community.document_loaders import PyMuPDFLoader
-# from langchain_core.documents import Document
+from docling.document_converter import DocumentConverter
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -17,7 +16,12 @@ from db.user_files import UserFiles
 from settings.settings import api_settings
 
 user_id = "2c117f72-d92f-4b2e-a290-563842bcf65c"
+converter = DocumentConverter()
+enc = tiktoken.get_encoding("cl100k_base")
 
+
+def count_tokens(text: str) -> int:
+    return len(enc.encode(text))
 
 def _sync_upsert(records, namespace):
     """Upload to Pinecone (BLOCKING I/O)"""
@@ -42,9 +46,7 @@ def _embed_sparse(batch_texts):
 
 def _sync_load_pdf(path):
     """Load PDF and extract pages (BLOCKING I/O)"""
-    loader = PyMuPDFLoader(path)
-    return loader.load()
-
+    return converter.convert(path)
 
 def _sync_split_documents(documents):
     """Split documents into chunks (CPU-BOUND)"""
@@ -54,7 +56,6 @@ def _sync_split_documents(documents):
         add_start_index=True,
     )
     return text_splitter.split_documents(documents)
-
 
 def _sync_split_texts(texts):
     """Split texts into chunks (CPU-BOUND)"""
@@ -81,7 +82,7 @@ async def insert_postgres_db(file_name, user_file, db: AsyncSession):
 
 
 async def insert_vector_db(documents, file_name, user_file):
-    all_splits = await asyncio.to_thread(_sync_split_documents, documents)
+    all_splits = await asyncio.to_thread(_sync_split_texts, documents)
 
     BATCH_SIZE = 50
 
@@ -104,15 +105,7 @@ async def insert_vector_db(documents, file_name, user_file):
                         "indices": sparse_embeddings[j]["sparse_indices"],
                         "values": sparse_embeddings[j]["sparse_values"],
                     },
-                    "metadata": {
-                        "text": chunk.page_content,
-                        "file_name": file_name,
-                        "file_id": str(user_file.file_id),
-                        "user_id": str(user_file.user_id),
-                        "page": chunk.metadata["page"],
-                        "number_of_pages": len(documents),
-                        "start_index": chunk.metadata["start_index"],
-                    },
+                    "metadata": {**chunk.metadata, "text": chunk.page_content},
                 }
             )
 
@@ -136,16 +129,20 @@ async def process_file_upload(file: UploadFile):
             content = await file.read()
             await asyncio.to_thread(lambda: Path(tmp_path).write_bytes(content))
             documents = await asyncio.to_thread(_sync_load_pdf, tmp_path)
+            document_markdown = documents.document.export_to_markdown()
+            token_len = count_tokens(document_markdown)
 
             user_file = UserFiles(
                 file_name=file_name,
                 user_id=user_id,
-                number_of_pages=len(documents),
+                number_of_pages=len(documents.pages),
+                token_count=token_len,
+                markdown_content=document_markdown
             )
 
             await asyncio.gather(
                 insert_postgres_db(file_name, user_file, db),
-                insert_vector_db(documents, file_name, user_file),
+                # insert_vector_db(document_markdown, file_name, user_file),
             )
 
         finally:

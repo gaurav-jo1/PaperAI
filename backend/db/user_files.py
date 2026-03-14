@@ -1,6 +1,6 @@
 from db.database import Base
 from sqlalchemy.dialects.postgresql import UUID as PG_UUID
-from sqlalchemy import Column, String, Index, UniqueConstraint, Integer, DateTime, func
+from sqlalchemy import Column, String, Index, UniqueConstraint, Integer, DateTime, func, INTEGER, Text
 import uuid
 
 
@@ -17,6 +17,8 @@ class UserFiles(Base):
     created_at = Column(
         DateTime(timezone=True), server_default=func.now(), nullable=False
     )
+    token_count = Column(INTEGER, nullable=False, default=0)
+    markdown_content = Column(Text, nullable=True)
 
     __table_args__ = (
         Index("idx_user_files_file_id", "file_id"),
